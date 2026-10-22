@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import {
+  PageHeader,
+  ProgressMeter,
+  RewardPill,
+  Surface,
+} from "@/components/gamification-ui";
 import { MODULES, getLessonsForModule } from "@/lib/content";
+import { createGamificationSnapshot } from "@/lib/gamification-view";
 import { useAppStore } from "@/lib/store";
 
 const TRACK_LABEL: Record<string, string> = {
@@ -11,15 +18,53 @@ const TRACK_LABEL: Record<string, string> = {
 };
 
 export default function LearnPage() {
-  const { profile, completedLessonIds } = useAppStore();
-  const merit = profile?.merit_points ?? 0;
+  const {
+    profile,
+    completedLessonIds,
+    earnedBadgeSlugs,
+    sessions,
+    quizAttempts,
+  } = useAppStore();
+  const snapshot = createGamificationSnapshot({
+    profile,
+    completedLessonIds,
+    earnedBadgeSlugs,
+    sessions,
+    quizAttempts,
+  });
+  const merit = snapshot?.merit ?? 0;
 
   return (
-    <section className="animate-grow-in">
-      <h1 className="font-display text-3xl text-gold-soft">သင်ယူရန် · Learn</h1>
-      <p className="mt-2 text-cream/65">
-        ကုသိုလ်အမှတ်ဖြင့် အဆင့်လိုက် ဖွင့်လှစ်သော သင်ခန်းစာများ
-      </p>
+    <section className="gamify-page animate-grow-in">
+      <PageHeader
+        title="သင်ယူရန် · Learn"
+        description="ကုသိုလ်အမှတ်ဖြင့် အဆင့်လိုက် ဖွင့်လှစ်သော သင်ခန်းစာများ"
+      />
+
+      {snapshot && (
+        <Surface strong className="grid gap-3 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-text-secondary">Your learning path</p>
+              <p className="text-lg font-bold text-cream">
+                Level {snapshot.level} · {snapshot.tree.en}
+              </p>
+            </div>
+            <RewardPill value={snapshot.merit} label="merit" prefix="" />
+          </div>
+          <ProgressMeter
+            value={snapshot.progressPercent}
+            label="Level progress"
+            current={`${snapshot.merit} merit`}
+            target={
+              snapshot.isMaxLevel
+                ? "Max level"
+                : `${snapshot.meritToNext} to grow`
+            }
+            tone="tree"
+          />
+        </Surface>
+      )}
 
       <div className="mt-8 space-y-4">
         {MODULES.map((mod) => {
@@ -30,57 +75,55 @@ export default function LearnPage() {
           ).length;
 
           return (
-            <div
+            <Surface
               key={mod.id}
-              className={`rounded-2xl border px-5 py-4 ${
-                locked
-                  ? "border-mist/40 bg-bg-deep/40 opacity-70"
-                  : "border-mist bg-bg-soft/40"
-              }`}
+              muted={locked}
+              interactive={!locked}
+              className={`grid gap-4 p-4 ${locked ? "opacity-70" : ""}`}
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="text-xs uppercase tracking-wide text-gold/70">
+                  <p className="gamify-kicker">
                     {TRACK_LABEL[mod.track]}
                   </p>
-                  <h2 className="font-display text-xl text-cream">
+                  <h2 className="mt-1 font-display text-xl text-cream">
                     {mod.title_mm}
                   </h2>
-                  <p className="text-sm text-cream/55">{mod.title_en}</p>
-                  <p className="mt-1 text-sm text-cream/70">
+                  <p className="text-sm text-text-secondary">{mod.title_en}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-text-secondary">
                     {mod.description_mm}
                   </p>
                 </div>
                 {locked ? (
-                  <span className="rounded-lg bg-mist px-3 py-1 text-xs text-cream/70">
+                  <span className="rounded-full bg-surface-muted px-3 py-1 text-xs text-text-secondary">
                     {mod.unlock_merit} merit လိုအပ်
                   </span>
                 ) : (
-                  <span className="text-xs text-gold-soft">
+                  <span className="rounded-full bg-accent-tree/15 px-3 py-1 text-xs text-accent-merit-soft">
                     {doneCount}/{lessons.length} ပြီး
                   </span>
                 )}
               </div>
 
               {!locked && (
-                <ul className="mt-4 space-y-2 border-t border-mist pt-3">
+                <ul className="space-y-2 border-t border-border-subtle pt-3">
                   {lessons.map((lesson) => {
                     const done = completedLessonIds.includes(lesson.id);
                     return (
                       <li key={lesson.id}>
                         <Link
                           href={`/learn/${mod.slug}/${lesson.slug}`}
-                          className="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-mist"
+                          className="flex items-center justify-between gap-3 rounded-xl px-2 py-2 transition hover:bg-surface-muted"
                         >
-                          <span>
-                            <span className="block text-cream">
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm text-cream">
                               {lesson.title_mm}
                             </span>
-                            <span className="text-xs text-cream/50">
+                            <span className="text-xs text-text-tertiary">
                               {lesson.title_en} · {lesson.duration_mins} မိနစ်
                             </span>
                           </span>
-                          <span className="text-sm text-gold-soft">
+                          <span className="shrink-0 text-xs font-semibold text-accent-merit-soft">
                             {done ? "ပြီးပြီ" : "ဖတ်မည်"}
                           </span>
                         </Link>
@@ -89,7 +132,7 @@ export default function LearnPage() {
                   })}
                 </ul>
               )}
-            </div>
+            </Surface>
           );
         })}
       </div>

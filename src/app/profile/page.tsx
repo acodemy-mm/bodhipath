@@ -1,10 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { BADGES } from "@/lib/content";
+import {
+  BadgeGrid,
+  EmptyState,
+  PageHeader,
+  SectionHeading,
+  StreakCard,
+  Surface,
+  StatCard,
+} from "@/components/gamification-ui";
+import { createGamificationSnapshot } from "@/lib/gamification-view";
 import { useAppStore } from "@/lib/store";
 import { BodhiTree } from "@/components/bodhi-tree";
-import { treeLabel } from "@/lib/gamification";
+import { TrophyIcon } from "@/components/reference-icons";
 
 export default function ProfilePage() {
   const {
@@ -18,18 +27,43 @@ export default function ProfilePage() {
 
   if (!profile) return null;
 
-  const label = treeLabel(profile.tree_stage);
+  const snapshot = createGamificationSnapshot({
+    profile,
+    completedLessonIds,
+    earnedBadgeSlugs,
+    sessions,
+    quizAttempts,
+  });
+  if (!snapshot) return null;
+
+  const activity = [
+    ...sessions.map((session) => ({
+      id: session.id,
+      date: session.created_at,
+      label: session.type === "meditate" ? "တရားထိုင်" : "ပုတီး",
+      detail: `+${session.merit_awarded} merit`,
+    })),
+    ...quizAttempts.map((attempt) => ({
+      id: attempt.id,
+      date: attempt.created_at,
+      label: "စာမေး",
+      detail: `${attempt.score}/${attempt.total} · +${attempt.merit_awarded} merit`,
+    })),
+  ]
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, 8);
 
   return (
-    <section className="animate-grow-in">
-      <h1 className="font-display text-3xl text-gold-soft">
-        ပရိုဖိုင် · Profile
-      </h1>
+    <section className="gamify-page animate-grow-in">
+      <PageHeader
+        title="ပရိုဖိုင် · Profile"
+        description={`${profile.display_name} · ${snapshot.tree.en}`}
+      />
 
-      <div className="mt-6 rounded-2xl border border-mist bg-bg-soft/40 p-6 text-center">
+      <Surface strong className="grid justify-items-center gap-3 p-5 text-center">
         <p className="text-xl text-cream">{profile.display_name}</p>
-        <p className="text-sm text-cream/50">{profile.email}</p>
-        <p className="mt-2 text-sm text-gold-soft">
+        <p className="text-sm text-text-tertiary">{profile.email}</p>
+        <p className="text-sm text-accent-merit-soft">
           ရည်မှန်းချက်:{" "}
           {profile.goal === "meditation"
             ? "တရားထိုင်ခြင်း"
@@ -38,68 +72,62 @@ export default function ProfilePage() {
               : "နှစ်မျိုးလုံး"}
         </p>
         <BodhiTree
-          stage={profile.tree_stage}
-          merit={profile.merit_points}
-          className="mt-4 scale-90"
+          stage={snapshot.stage}
+          merit={snapshot.merit}
+          className="scale-90"
         />
-        <p className="text-sm text-cream/60">
-          {label.mm} · စတြိက် {profile.streak_current} (အရှည်ဆုံး{" "}
-          {profile.streak_longest})
+        <p className="text-sm text-text-secondary">
+          {snapshot.tree.mm} · Level {snapshot.level}
         </p>
+      </Surface>
+
+      <div className="gamify-stat-grid">
+        <StatCard label="Merit" value={snapshot.merit} />
+        <StatCard
+          label="သင်ခန်းစာ"
+          value={`${snapshot.completedLessonCount}/${snapshot.lessonTotal}`}
+        />
+        <StatCard label="လေ့ကျင့်မှု" value={snapshot.practiceSessionCount} />
       </div>
 
-      <div className="mt-8 grid gap-3 sm:grid-cols-3">
-        <Stat label="Merit" value={String(profile.merit_points)} />
-        <Stat label="သင်ခန်းစာ" value={String(completedLessonIds.length)} />
-        <Stat label="လေ့ကျင့်မှု" value={String(sessions.length)} />
-      </div>
+      <StreakCard
+        current={snapshot.currentStreak}
+        longest={snapshot.longestStreak}
+        week={snapshot.week}
+      />
 
-      <h2 className="font-display mt-10 text-lg text-gold-soft">တံဆိပ်များ</h2>
-      <ul className="mt-3 space-y-2">
-        {BADGES.map((b) => {
-          const earned = earnedBadgeSlugs.includes(b.slug);
-          return (
-            <li
-              key={b.slug}
-              className={`rounded-xl border px-4 py-3 ${
-                earned
-                  ? "border-gold/40 bg-leaf/20"
-                  : "border-mist/40 bg-bg-deep/30 opacity-50"
-              }`}
-            >
-              <p className="text-cream">{b.title_mm}</p>
-              <p className="text-xs text-cream/55">
-                {b.title_en} — {b.description_mm}
-              </p>
-            </li>
-          );
-        })}
-      </ul>
+      <section className="grid gap-3">
+        <SectionHeading>
+          <TrophyIcon /> တံဆိပ်များ · Badges
+        </SectionHeading>
+        <BadgeGrid badges={snapshot.badges} />
+      </section>
 
-      <h2 className="font-display mt-10 text-lg text-gold-soft">
-        မကြာသေးမီ လုပ်ဆောင်ချက်
-      </h2>
-      <ul className="mt-3 space-y-2 text-sm text-cream/70">
-        {sessions.slice(0, 5).map((s) => (
-          <li key={s.id} className="rounded-lg bg-mist/40 px-3 py-2">
-            {s.type === "meditate" ? "တရားထိုင်" : "ပုတီး"} · +{s.merit_awarded}{" "}
-            · {new Date(s.created_at).toLocaleString()}
-          </li>
-        ))}
-        {quizAttempts.slice(0, 3).map((q) => (
-          <li key={q.id} className="rounded-lg bg-mist/40 px-3 py-2">
-            စာမေး {q.score}/{q.total} · +{q.merit_awarded}
-          </li>
-        ))}
-        {sessions.length === 0 && quizAttempts.length === 0 && (
-          <li className="text-cream/45">မရှိသေးပါ — လေ့ကျင့်မှု စတင်ပါ။</li>
+      <section className="grid gap-3">
+        <SectionHeading>မကြာသေးမီ လုပ်ဆောင်ချက်</SectionHeading>
+        {activity.length === 0 ? (
+          <EmptyState>မရှိသေးပါ — လေ့ကျင့်မှု စတင်ပါ။</EmptyState>
+        ) : (
+          <div className="grid gap-2">
+            {activity.map((item) => (
+              <Surface key={item.id} muted className="flex items-center justify-between gap-3 px-3 py-2.5">
+                <span className="text-sm text-cream">{item.label}</span>
+                <span className="text-right text-xs text-text-tertiary">
+                  <span className="block">{item.detail}</span>
+                  <span className="block">
+                    {new Date(item.date).toLocaleDateString()}
+                  </span>
+                </span>
+              </Surface>
+            ))}
+          </div>
         )}
-      </ul>
+      </section>
 
-      <div className="mt-10 flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-2 pt-2">
         <Link
           href="/home"
-          className="rounded-xl border border-mist px-5 py-2 text-cream"
+          className="gamify-button gamify-button--secondary"
         >
           အိမ်သို့
         </Link>
@@ -109,20 +137,11 @@ export default function ProfilePage() {
             signOut();
             window.location.href = "/";
           }}
-          className="rounded-xl bg-mist px-5 py-2 text-cream/80"
+          className="gamify-button gamify-button--quiet"
         >
           ထွက်ရန် · Sign out
         </button>
       </div>
     </section>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-mist bg-bg-soft/30 px-4 py-3 text-center">
-      <p className="font-display text-2xl text-gold-soft">{value}</p>
-      <p className="text-xs text-cream/55">{label}</p>
-    </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { PageHeader, Surface } from "@/components/gamification-ui";
 import { useAppStore } from "@/lib/store";
 import type { Goal } from "@/lib/types";
 
@@ -39,50 +40,51 @@ export default function OnboardingPage() {
   }
 
   return (
-    <section className="mx-auto max-w-lg animate-grow-in">
-      <h1 className="font-display text-3xl text-gold-soft">
-        သင့်လမ်းကို ရွေးပါ
-      </h1>
-      <p className="mt-2 text-cream/65">
-        Goal selection · ဗောဓိလမ်းတွင် ဘာကို အဓိကထားမလဲ။
-      </p>
+    <section className="gamify-page animate-grow-in">
+      <PageHeader
+        title="သင့်လမ်းကို ရွေးပါ"
+        description="Goal selection · ဗောဓိလမ်းတွင် ဘာကို အဓိကထားမလဲ။"
+      />
 
-      <label className="mt-8 block text-sm">
-        <span className="text-cream/70">အမည်</span>
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="mt-1 w-full rounded-xl border border-mist bg-bg-soft/80 px-4 py-3 outline-none ring-gold/40 focus:ring-2"
-        />
-      </label>
+      <Surface className="grid gap-5 p-4">
+        <label className="grid gap-1.5 text-sm">
+          <span className="text-text-secondary">အမည်</span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="gamify-input"
+          />
+        </label>
 
-      <div className="mt-6 space-y-3">
-        {GOALS.map((g) => (
-          <button
-            key={g.id}
-            type="button"
-            onClick={() => setGoal(g.id)}
-            className={`w-full rounded-2xl border px-5 py-4 text-left transition ${
-              goal === g.id
-                ? "border-gold bg-leaf/30"
-                : "border-mist bg-bg-soft/40 hover:border-leaf-bright/50"
-            }`}
-          >
-            <span className="block font-medium text-cream">{g.mm}</span>
-            <span className="text-sm text-gold-soft/80">{g.en}</span>
-            <span className="mt-1 block text-sm text-cream/55">{g.desc}</span>
-          </button>
-        ))}
-      </div>
+        <div className="grid gap-3">
+          {GOALS.map((g) => (
+            <button
+              key={g.id}
+              type="button"
+              onClick={() => setGoal(g.id)}
+              className={`gamify-choice ${
+                goal === g.id ? "is-selected" : ""
+              }`}
+              aria-pressed={goal === g.id}
+            >
+              <span className="block font-medium text-cream">{g.mm}</span>
+              <span className="text-sm text-accent-merit-soft">{g.en}</span>
+              <span className="mt-1 block text-sm text-text-secondary">
+                {g.desc}
+              </span>
+            </button>
+          ))}
+        </div>
 
-      <button
-        type="button"
-        disabled={!goal}
-        onClick={submit}
-        className="mt-8 w-full rounded-xl bg-gold py-3 font-medium text-ink disabled:opacity-40"
-      >
-        ဆက်လက် · Continue
-      </button>
+        <button
+          type="button"
+          disabled={!goal}
+          onClick={submit}
+          className="gamify-button gamify-button--primary w-full"
+        >
+          ဆက်လက် · Continue
+        </button>
+      </Surface>
     </section>
   );
 }

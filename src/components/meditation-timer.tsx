@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ProgressMeter, RewardPill, Surface } from "@/components/gamification-ui";
 import { useAppStore } from "@/lib/store";
 import { MEDITATE_MIN_SECONDS } from "@/lib/gamification";
 
@@ -72,15 +73,15 @@ export function MeditationTimer() {
   const progress = 1 - remaining / duration;
 
   return (
-    <div className="mx-auto max-w-md animate-grow-in text-center">
-      <div className="relative mx-auto mb-8 flex h-52 w-52 items-center justify-center">
+    <Surface className="grid justify-items-center gap-5 p-5 text-center animate-grow-in">
+      <div className="relative flex h-52 w-52 items-center justify-center">
         <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
           <circle
             cx="50"
             cy="50"
             r="44"
             fill="none"
-            stroke="rgba(242,239,230,0.12)"
+            stroke="var(--progress-track)"
             strokeWidth="6"
           />
           <circle
@@ -88,7 +89,7 @@ export function MeditationTimer() {
             cy="50"
             r="44"
             fill="none"
-            stroke="#c4a35a"
+            stroke="var(--accent-merit)"
             strokeWidth="6"
             strokeLinecap="round"
             strokeDasharray={`${2 * Math.PI * 44}`}
@@ -102,7 +103,7 @@ export function MeditationTimer() {
       </div>
 
       {!running && !done && (
-        <div className="mb-6 flex flex-wrap justify-center gap-2">
+        <div className="flex flex-wrap justify-center gap-2">
           {PRESETS.map((p) => (
             <button
               key={p.seconds}
@@ -111,10 +112,10 @@ export function MeditationTimer() {
                 setDuration(p.seconds);
                 setRemaining(p.seconds);
               }}
-              className={`rounded-xl px-4 py-2 text-sm transition ${
+              className={`gamify-button ${
                 duration === p.seconds
                   ? "bg-leaf text-cream"
-                  : "bg-mist text-cream/80 hover:bg-bg-soft"
+                  : "gamify-button--secondary"
               }`}
             >
               {p.label}
@@ -128,7 +129,7 @@ export function MeditationTimer() {
           <button
             type="button"
             onClick={start}
-            className="rounded-xl bg-gold px-8 py-3 font-medium text-ink transition hover:bg-gold-soft"
+            className="gamify-button gamify-button--primary"
           >
             စတင်ရန် · Start
           </button>
@@ -138,14 +139,14 @@ export function MeditationTimer() {
             <button
               type="button"
               onClick={pause}
-              className="rounded-xl bg-mist px-6 py-3 text-cream"
+              className="gamify-button gamify-button--secondary"
             >
               ခဏရပ် · Pause
             </button>
             <button
               type="button"
               onClick={finishEarly}
-              className="rounded-xl border border-gold/40 px-6 py-3 text-gold-soft"
+              className="gamify-button gamify-button--secondary"
             >
               ပြီးဆုံး · Finish
             </button>
@@ -155,7 +156,7 @@ export function MeditationTimer() {
           <button
             type="button"
             onClick={() => setRunning(true)}
-            className="rounded-xl bg-gold px-8 py-3 font-medium text-ink"
+            className="gamify-button gamify-button--primary"
           >
             ဆက်လက် · Resume
           </button>
@@ -167,7 +168,7 @@ export function MeditationTimer() {
               setDone(null);
               setRemaining(duration);
             }}
-            className="rounded-xl bg-leaf px-8 py-3 text-cream"
+            className="gamify-button gamify-button--secondary"
           >
             ထပ်မံ ထိုင်မည်
           </button>
@@ -175,17 +176,27 @@ export function MeditationTimer() {
       </div>
 
       {done && (
-        <p className="mt-6 animate-grow-in text-gold-soft">
-          သာဓု! +{done.merit} merit
-          {(duration - remaining || duration) >= MEDITATE_MIN_SECONDS
-            ? " · ပြည့်မီသော ထိုင်ခြင်း"
-            : " · တိုတောင်းသော ထိုင်ခြင်း"}
-        </p>
+        <div className="grid justify-items-center gap-2 animate-grow-in">
+          <RewardPill value={done.merit} />
+          <p className="text-sm text-accent-success">
+            {(duration - remaining || duration) >= MEDITATE_MIN_SECONDS
+              ? "ပြည့်မီသော ထိုင်ခြင်း"
+              : "တိုတောင်းသော ထိုင်ခြင်း"}
+          </p>
+        </div>
       )}
 
-      <p className="mt-6 text-sm text-cream/50">
+      <div className="w-full max-w-xs">
+        <ProgressMeter
+          value={progress * 100}
+          label="Meditation progress"
+          current={`${Math.round(progress * duration)} sec`}
+          target={`${duration} sec`}
+        />
+      </div>
+      <p className="text-sm text-text-tertiary">
         ၅ မိနစ်နှင့်အထက် ထိုင်လျှင် +15 merit ရရှိမည်။
       </p>
-    </div>
+    </Surface>
   );
 }

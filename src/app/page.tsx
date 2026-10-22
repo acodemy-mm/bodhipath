@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { BodhiTree } from "@/components/bodhi-tree";
+import { Surface } from "@/components/gamification-ui";
 import { useAppStore } from "@/lib/store";
 
 export default function LandingPage() {
@@ -17,22 +18,22 @@ export default function LandingPage() {
   }, [ready, profile, router]);
 
   return (
-    <section className="flex min-h-[80dvh] flex-col items-center justify-center text-center">
-      <p className="mb-2 text-sm uppercase tracking-[0.2em] text-gold/80">
-        Bodhi Path
-      </p>
-      <h1 className="font-display animate-grow-in text-5xl text-gold-soft md:text-6xl">
+    <section className="gamify-page min-h-[80dvh] content-center text-center animate-grow-in">
+      <p className="gamify-kicker">BODHI PATH</p>
+      <h1 className="font-display text-5xl text-accent-merit-soft md:text-6xl">
         ဗောဓိလမ်း
       </h1>
-      <p className="mt-4 max-w-md text-cream/75">
+      <p className="mx-auto max-w-md text-sm leading-7 text-text-secondary">
         ဝိပဿနာ၊ အဘိဓမ္မာနှင့် နေ့စဉ် လေ့ကျင့်မှုကို ကုသိုလ်အမှတ်နှင့်
         ဗောဓိပင်ကြီးထွားမှုဖြင့် ပေါင်းစပ်ထားသော လမ်းကြောင်း။
       </p>
-      <BodhiTree stage={2} merit={0} className="my-8" />
+      <Surface strong className="mx-auto w-full max-w-sm p-4">
+        <BodhiTree stage={0} merit={0} />
+      </Surface>
       <div className="flex flex-wrap justify-center gap-3">
         <Link
           href="/auth"
-          className="rounded-xl bg-gold px-8 py-3 font-medium text-ink transition hover:bg-gold-soft"
+          className="gamify-button gamify-button--primary"
         >
           စတင်ရန် · Begin
         </Link>

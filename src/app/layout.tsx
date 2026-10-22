@@ -1,8 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Noto_Sans, Noto_Sans_Myanmar } from "next/font/google";
 import { AppStoreProvider } from "@/lib/store";
 import { AuthGate } from "@/components/auth-gate";
-import { AppNav } from "@/components/app-nav";
+import { AppShell } from "@/components/app-shell";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -24,6 +24,12 @@ const notoMyanmar = Noto_Sans_Myanmar({
   display: "swap",
 });
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
 export const metadata: Metadata = {
   title: "ဗောဓိလမ်း · Bodhi Path",
   description:
@@ -43,10 +49,7 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <AppStoreProvider>
           <AuthGate>
-            <AppNav />
-            <main className="mx-auto min-h-dvh w-full max-w-5xl px-4 pb-28 pt-6 md:pb-10 md:pt-8">
-              {children}
-            </main>
+            <AppShell>{children}</AppShell>
           </AuthGate>
         </AppStoreProvider>
       </body>

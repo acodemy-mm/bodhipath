@@ -1,30 +1,66 @@
 "use client";
 
+import { useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  ArrowRightIcon,
   BookIcon,
   ChestIcon,
   FireIcon,
   LeafIcon,
-  PlayIcon,
-  SproutIcon,
   StarIcon,
   TargetIcon,
   TrophyIcon,
-  UserIcon,
+  BellIcon,
 } from "@/components/reference-icons";
-import { LESSONS, quoteOfDay } from "@/lib/content";
-import { TREE_THRESHOLDS } from "@/lib/gamification";
+import { quoteOfDay } from "@/lib/content";
+import { TREE_THRESHOLDS, todayISODate } from "@/lib/gamification";
+import { getPrayersByIds } from "@/lib/prayers";
 import { useAppStore } from "@/lib/store";
 
 const WEEK = ["M", "T", "W", "T", "F", "S", "S"];
+const PLAN_DAYS = ["S", "M", "T", "W", "T", "F", "S"] as const;
+
+function formatClock(time: string) {
+  const [hourText, minuteText] = time.split(":");
+  const hour = Number(hourText);
+  const minute = Number(minuteText);
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return time;
+  const suffix = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 || 12;
+  return `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
+}
 
 export default function HomePage() {
-  const { profile, sessions, completedLessonIds, earnedBadgeSlugs } =
-    useAppStore();
+  const {
+    profile,
+    earnedBadgeSlugs,
+    worshipPlans,
+    activeWorshipPlanId,
+    habitCompletions,
+    toggleHabitCompletion,
+  } = useAppStore();
   const quote = quoteOfDay();
+
+  const todayKey = todayISODate();
+  const todayWeekday = new Date().getDay();
+  const activePlan =
+    worshipPlans.find((plan) => plan.id === activeWorshipPlanId) ??
+    worshipPlans[0];
+  const scheduledToday = activePlan
+    ? activePlan.weekdays.includes(todayWeekday)
+    : false;
+  const todayDone = habitCompletions[todayKey] ?? [];
+
+  const activePrayerIds = useMemo(
+    () => activePlan?.prayerIds ?? [],
+    [activePlan],
+  );
+
+  const habitPrayers = useMemo(
+    () => getPrayersByIds(activePrayerIds),
+    [activePrayerIds],
+  );
 
   if (!profile) return null;
 
@@ -42,12 +78,11 @@ export default function HomePage() {
         100,
     ),
   );
-  const practicedToday =
-    profile.last_practice_date === new Date().toISOString().slice(0, 10);
-  const nextLesson =
-    LESSONS.find((lesson) => !completedLessonIds.includes(lesson.id)) ??
-    LESSONS[0];
+  const practicedToday = profile.last_practice_date === todayKey;
   const activeDays = Math.min(7, profile.streak_current);
+  const doneCount = habitPrayers.filter((prayer) =>
+    todayDone.includes(prayer.id),
+  ).length;
 
   return (
     <section className="reference-shell reference-home animate-grow-in">
@@ -60,11 +95,14 @@ export default function HomePage() {
           </p>
         </div>
         <Link
-          href="/profile"
+          href="/notifications"
           className="reference-avatar"
-          aria-label="Open profile"
+          aria-label="Open notifications"
         >
-          <UserIcon />
+          <BellIcon />
+          <span className="reference-avatar-badge" aria-hidden>
+            2
+          </span>
         </Link>
       </header>
 
@@ -78,6 +116,73 @@ export default function HomePage() {
           className="reference-hero-image"
         />
       </div>
+
+      <section className="reference-habit-card">
+        <div className="reference-habit-heading">
+          <strong>Worship plans</strong>
+          <Link href="/worship-plans">See all</Link>
+        </div>
+
+        {activePlan ? (
+          <div className="worship-plan-summary">
+            <div className="worship-plan-summary__top">
+              <span className="worship-plan-time">{formatClock(activePlan.time)}</span>
+              <div className="reference-habit-days" aria-label="Plan days">
+                {PLAN_DAYS.map((label, day) => (
+                  <span
+                    key={`${label}-${day}`}
+                    className={
+                      activePlan.weekdays.includes(day) ? "is-active" : ""
+                    }
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <h2>{activePlan.name}</h2>
+            <p>
+              <BellIcon /> Notify {activePlan.notifyMinutes} min before
+              <span>
+                <BookIcon /> {activePlan.prayerIds.length} Prayers
+              </span>
+            </p>
+          </div>
+        ) : null}
+
+        <div className="worship-plan-progress">
+          Habit tracker · {doneCount}/{habitPrayers.length} complete today
+        </div>
+
+        {!scheduledToday ? (
+          <p className="reference-habit-rest">
+            This plan is not scheduled today.
+          </p>
+        ) : (
+          <ul className="reference-habit-list">
+            {habitPrayers.map((prayer) => {
+              const checked = todayDone.includes(prayer.id);
+              return (
+                <li key={prayer.id}>
+                  <label
+                    className={`reference-habit-item ${checked ? "is-done" : ""}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleHabitCompletion(prayer.id)}
+                    />
+                    <span>
+                      <strong>{prayer.title_mm}</strong>
+                      <small>{prayer.title_en}</small>
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
 
       <section className="reference-level-card">
         <div className="reference-level-row">
@@ -108,42 +213,30 @@ export default function HomePage() {
         </div>
       </section>
 
-      <Link
-        href={`/learn/${nextLesson.module_slug}/${nextLesson.slug}`}
-        className="reference-lesson-link"
-      >
-        <span className="reference-action-icon">
-          <TargetIcon />
-        </span>
-        <span className="reference-lesson-copy">
-          <strong>{nextLesson.title_mm}</strong>
-          <small>{nextLesson.title_en} · Continue your path</small>
-        </span>
-        <span className="reference-circle-arrow">
-          <ArrowRightIcon />
-        </span>
-      </Link>
+      <section className="reference-home-quote" aria-label="Daily quote">
+        <p>&ldquo;{quote.text_mm}&rdquo;</p>
+        <small>{quote.text_en}</small>
+      </section>
 
       <div className="reference-quick-grid">
         <ReferenceQuickLink
-          href="/learn"
-          label="Learn"
-          icon={<SproutIcon />}
-          badge={completedLessonIds.length || undefined}
+          href="/prayers"
+          label="Prayers"
+          icon={<BookIcon />}
         />
         <ReferenceQuickLink
-          href="/practice"
-          label="Practice"
+          href="/practice/flashcards"
+          label="Flashcards"
           icon={<TargetIcon />}
         />
         <ReferenceQuickLink
-          href="/exam"
-          label="Exam"
+          href="/dictionary"
+          label="Dictionary"
           icon={<StarIcon />}
         />
         <ReferenceQuickLink
-          href="/profile"
-          label="Profile"
+          href="/leaderboard"
+          label="Leaderboard"
           icon={<TrophyIcon />}
         />
       </div>
@@ -155,7 +248,11 @@ export default function HomePage() {
           </span>
           <span>
             <strong>Daily Streak</strong>
-            <small>{practicedToday ? "Keep going! You're doing great!" : "A small step today is enough."}</small>
+            <small>
+              {practicedToday
+                ? "Keep going! You're doing great!"
+                : "A small step today is enough."}
+            </small>
           </span>
           <span className="reference-streak-count">
             <FireIcon /> {profile.streak_current} days
@@ -165,7 +262,10 @@ export default function HomePage() {
           {WEEK.map((day, index) => {
             const active = index < activeDays;
             return (
-              <span key={`${day}-${index}`} className={active ? "is-active" : ""}>
+              <span
+                key={`${day}-${index}`}
+                className={active ? "is-active" : ""}
+              >
                 <b>{active ? <LeafIcon /> : index + 1}</b>
                 <small>{day}</small>
               </span>
@@ -173,24 +273,6 @@ export default function HomePage() {
           })}
         </div>
       </section>
-
-      <section className="reference-quote-card">
-        <LeafIcon />
-        <div>
-          <p>{quote.text_mm}</p>
-          <small>{quote.text_en}</small>
-        </div>
-        <BookIcon />
-      </section>
-
-      <div className="reference-home-footer">
-        <Link href="/practice" className="reference-primary-button">
-          <PlayIcon /> Continue practice
-        </Link>
-        <span>
-          {sessions.length} practice sessions · {completedLessonIds.length} lessons complete
-        </span>
-      </div>
     </section>
   );
 }

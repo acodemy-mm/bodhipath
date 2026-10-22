@@ -2,16 +2,21 @@ import type { SVGProps } from "react";
 
 type IconProps = SVGProps<SVGSVGElement>;
 
-function Icon({ children, ...props }: IconProps & { children: React.ReactNode }) {
+function Icon({
+  children,
+  className,
+  ...props
+}: IconProps & { children: React.ReactNode }) {
   return (
     <svg
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.8"
+      strokeWidth="1.7"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
+      className={["h-5 w-5 shrink-0", className].filter(Boolean).join(" ")}
       {...props}
     >
       {children}
@@ -24,6 +29,15 @@ export function UserIcon(props: IconProps) {
     <Icon {...props}>
       <circle cx="12" cy="8.5" r="3" />
       <path d="M5.5 19c1.3-3.1 3.5-4.6 6.5-4.6s5.2 1.5 6.5 4.6" />
+    </Icon>
+  );
+}
+
+export function BellIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M6.5 9.5a5.5 5.5 0 0 1 11 0c0 4.2 1.5 5.5 1.5 5.5H5s1.5-1.3 1.5-5.5Z" />
+      <path d="M10 18.2a2 2 0 0 0 4 0" />
     </Icon>
   );
 }

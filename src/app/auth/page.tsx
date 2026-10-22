@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { PageHeader, Surface } from "@/components/gamification-ui";
 import { useAppStore } from "@/lib/store";
 
 export default function AuthPage() {
@@ -39,73 +40,74 @@ export default function AuthPage() {
   }
 
   return (
-    <section className="mx-auto max-w-md animate-grow-in">
-      <Link href="/" className="text-sm text-cream/50 hover:text-gold-soft">
+    <section className="gamify-page animate-grow-in">
+      <Link href="/" className="gamify-button gamify-button--quiet w-fit">
         ← ဗောဓိလမ်း
       </Link>
-      <h1 className="font-display mt-4 text-3xl text-gold-soft">
-        {mode === "signup" ? "အကောင့်ဖွင့်ရန်" : "ဝင်ရောက်ရန်"}
-      </h1>
-      <p className="mt-1 text-sm text-cream/60">
-        Demo mode — data is saved in this browser. Add Supabase env vars for
-        cloud auth.
-      </p>
+      <PageHeader
+        title={mode === "signup" ? "အကောင့်ဖွင့်ရန်" : "ဝင်ရောက်ရန်"}
+        description="Demo mode — data is saved in this browser. Add Supabase env vars for cloud auth."
+      />
 
-      <form onSubmit={onSubmit} className="mt-8 space-y-4">
-        {mode === "signup" && (
-          <label className="block text-sm">
-            <span className="text-cream/70">အမည် · Name</span>
+      <Surface className="p-4">
+        <form onSubmit={onSubmit} className="grid gap-4">
+          {mode === "signup" && (
+            <label className="grid gap-1.5 text-sm">
+              <span className="text-text-secondary">အမည် · Name</span>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="gamify-input"
+                placeholder="ယောဂီ"
+              />
+            </label>
+          )}
+          <label className="grid gap-1.5 text-sm">
+            <span className="text-text-secondary">အီးမေးလ်</span>
             <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 w-full rounded-xl border border-mist bg-bg-soft/80 px-4 py-3 outline-none ring-gold/40 focus:ring-2"
-              placeholder="ယောဂီ"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="gamify-input"
+              placeholder="you@example.com"
+              required
             />
           </label>
-        )}
-        <label className="block text-sm">
-          <span className="text-cream/70">အီးမေးလ်</span>
-          <input
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-mist bg-bg-soft/80 px-4 py-3 outline-none ring-gold/40 focus:ring-2"
-            placeholder="you@example.com"
-            required
-          />
-        </label>
-        <label className="block text-sm">
-          <span className="text-cream/70">စကားဝှက်</span>
-          <input
-            type="password"
-            autoComplete={mode === "signup" ? "new-password" : "current-password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 w-full rounded-xl border border-mist bg-bg-soft/80 px-4 py-3 outline-none ring-gold/40 focus:ring-2"
-            required
-          />
-        </label>
+          <label className="grid gap-1.5 text-sm">
+            <span className="text-text-secondary">စကားဝှက်</span>
+            <input
+              type="password"
+              autoComplete={
+                mode === "signup" ? "new-password" : "current-password"
+              }
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="gamify-input"
+              required
+            />
+          </label>
 
-        {error && <p className="text-sm text-red-300">{error}</p>}
+          {error && <p className="text-sm text-accent-danger">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-gold py-3 font-medium text-ink transition hover:bg-gold-soft disabled:opacity-60"
-        >
-          {loading
-            ? "…"
-            : mode === "signup"
-              ? "ဖွင့်မည် · Sign up"
-              : "ဝင်မည် · Sign in"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="gamify-button gamify-button--primary w-full"
+          >
+            {loading
+              ? "…"
+              : mode === "signup"
+                ? "ဖွင့်မည် · Sign up"
+                : "ဝင်မည် · Sign in"}
+          </button>
+        </form>
+      </Surface>
 
       <button
         type="button"
         onClick={() => setMode(mode === "signup" ? "signin" : "signup")}
-        className="mt-6 w-full text-sm text-cream/60 hover:text-gold-soft"
+        className="gamify-button gamify-button--quiet w-full"
       >
         {mode === "signup"
           ? "အကောင့်ရှိပြီးသားလား? ဝင်ရောက်ရန်"

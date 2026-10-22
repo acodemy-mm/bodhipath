@@ -23,22 +23,22 @@ export function BodhiTree({ stage, merit, className = "" }: Props) {
       >
         <defs>
           <linearGradient id="trunk" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#8b6914" />
-            <stop offset="100%" stopColor="#5c4210" />
+            <stop offset="0%" stopColor="var(--gold)" />
+            <stop offset="100%" stopColor="var(--bg-deep)" />
           </linearGradient>
           <radialGradient id="canopy" cx="50%" cy="40%" r="60%">
-            <stop offset="0%" stopColor="#7ec48a" />
-            <stop offset="70%" stopColor="#3d7a4a" />
-            <stop offset="100%" stopColor="#2a5534" />
+            <stop offset="0%" stopColor="var(--accent-tree)" />
+            <stop offset="70%" stopColor="var(--leaf)" />
+            <stop offset="100%" stopColor="var(--bg-mid)" />
           </radialGradient>
         </defs>
         <ellipse cx="100" cy="200" rx="48" ry="8" fill="rgba(0,0,0,0.25)" />
         {stage === 0 ? (
           <>
-            <ellipse cx="100" cy="175" rx="14" ry="10" fill="#8b6914" />
+            <ellipse cx="100" cy="175" rx="14" ry="10" fill="var(--gold)" />
             <path
               d="M100 175 Q95 150 100 130 Q105 150 100 175"
-              fill="#5a9e68"
+              fill="var(--leaf-bright)"
               className="animate-pulse-soft"
             />
           </>
@@ -72,20 +72,25 @@ export function BodhiTree({ stage, merit, className = "" }: Props) {
                   cy={cy}
                   rx={10 + stage}
                   ry={6 + stage * 0.5}
-                  fill="#5a9e68"
+                  fill="var(--leaf-bright)"
                   opacity={0.85}
                   transform={`rotate(${(angle * 180) / Math.PI} ${cx} ${cy})`}
                 />
               );
             })}
             {stage >= 3 && (
-              <circle cx="118" cy={200 - height - 10} r="4" fill="#c4a35a" />
+              <circle
+                cx="118"
+                cy={200 - height - 10}
+                r="4"
+                fill="var(--gold)"
+              />
             )}
           </>
         )}
       </svg>
-      <p className="font-display text-lg text-gold-soft">{label.mm}</p>
-      <p className="text-sm text-cream/60">
+      <p className="font-display text-lg text-accent-merit-soft">{label.mm}</p>
+      <p className="text-sm text-text-secondary">
         {label.en} · {merit} merit
       </p>
     </div>

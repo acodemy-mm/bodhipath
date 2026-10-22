@@ -84,10 +84,33 @@ export interface QuizAttempt {
   created_at: string;
 }
 
+export type HabitPlanMode = "preset" | "custom";
+
+export interface WorshipPlan {
+  id: string;
+  name: string;
+  /** Local time as HH:mm */
+  time: string;
+  /** Weekdays starting Sunday: 0=SU … 6=SA */
+  weekdays: number[];
+  notifyMinutes: number;
+  prayerIds: string[];
+}
+
 export interface AppState {
   profile: Profile | null;
   completedLessonIds: string[];
   earnedBadgeSlugs: string[];
   sessions: PracticeSession[];
   quizAttempts: QuizAttempt[];
+  habitPlanMode: HabitPlanMode;
+  habitSelectedPrayerIds: string[];
+  /** Local time as HH:mm */
+  habitTime: string;
+  /** Weekdays starting Sunday: 0=S … 6=S */
+  habitWeekdays: number[];
+  worshipPlans: WorshipPlan[];
+  activeWorshipPlanId: string;
+  /** Map of local YYYY-MM-DD → completed prayer document ids */
+  habitCompletions: Record<string, string[]>;
 }

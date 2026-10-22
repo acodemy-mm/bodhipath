@@ -44,8 +44,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!ready) {
     return (
-      <div className="flex min-h-dvh items-center justify-center text-gold-soft/80">
-        ဗောဓိလမ်း တင်နေသည်…
+      <div className="app-shell flex min-h-dvh items-center justify-center px-4">
+        <div className="gamify-surface w-full p-5 text-center text-sm text-accent-merit-soft">
+          ဗောဓိလမ်း တင်နေသည်…
+        </div>
       </div>
     );
   }

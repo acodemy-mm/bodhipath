@@ -55,11 +55,12 @@ function IconPractice({ className }: { className?: string }) {
   );
 }
 
-function IconExam({ className }: { className?: string }) {
+function IconEvent({ className }: { className?: string }) {
   return (
     <NavIcon className={className}>
-      <path d="M8 5h8a1.5 1.5 0 0 1 1.5 1.5V19l-2.5-1.25L12 19.5l-2.5-1.75L7 19V6.5A1.5 1.5 0 0 1 8.5 5 1.5 1.5 0 0 1 8 5Z" />
-      <path d="M10 9.5h4M10 13h3" />
+      <rect x="4.5" y="6" width="15" height="14" rx="1.5" />
+      <path d="M8 4v3M16 4v3M4.5 10h15" />
+      <path d="M9 14h2M13 14h2M9 17h2" />
     </NavIcon>
   );
 }
@@ -81,7 +82,7 @@ const LINKS: {
   { href: "/home", label: "Home", icon: IconHome },
   { href: "/learn", label: "Learn", icon: IconLearn },
   { href: "/practice", label: "Practice", icon: IconPractice },
-  { href: "/exam", label: "Exam", icon: IconExam },
+  { href: "/event", label: "Event", icon: IconEvent },
   { href: "/profile", label: "Profile", icon: IconProfile },
 ];
 
@@ -130,8 +131,8 @@ export function AppNav() {
       </header>
 
       {/* Mobile bottom nav — compact icons above English label */}
-      <nav className="safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-mist bg-bg-deep/95 backdrop-blur-md md:hidden">
-        <ul className="mx-auto flex max-w-lg justify-between px-1 pt-1.5">
+      <nav className="mobile-tab-nav safe-bottom fixed inset-x-0 bottom-0 z-40 border-t border-mist bg-bg-deep/95 backdrop-blur-md md:hidden">
+        <ul className="mx-auto flex max-w-lg justify-between px-1">
           {LINKS.map((link) => {
             const active =
               pathname === link.href || pathname.startsWith(`${link.href}/`);
