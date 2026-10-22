@@ -924,32 +924,19 @@ textarea {
 }
 
 .reference-hero {
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100px;
   overflow: hidden;
-  container-type: inline-size;
-  height: max(8rem, calc(100cqi / 1.46 - 100px));
-  border: 1px solid rgba(178, 217, 150, 0.2);
-  border-radius: 1.5rem;
-  background: #0d4434;
-  box-shadow:
-    0 1.5rem 3rem rgba(2, 19, 12, 0.28),
-    inset 0 1px rgba(255, 255, 255, 0.12);
-}
-
-.reference-hero::after {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  content: "";
-  background: linear-gradient(180deg, rgba(7, 39, 28, 0.04), rgba(5, 25, 17, 0.18));
 }
 
 .reference-hero-image {
   display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 62%;
+  width: auto;
+  height: 100px;
+  max-height: 100px;
+  object-fit: contain;
 }
 
 .reference-habit-card {

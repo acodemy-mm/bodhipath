@@ -108,11 +108,11 @@ export default function HomePage() {
 
       <div className="reference-hero">
         <Image
-          src="/bodhi-forest.jpg"
-          alt="A peaceful Bodhi Path meditation scene in a green forest"
-          fill
+          src="/bodhi-mascot.png"
+          alt="Bodhi, a small sprout meditating with a lotus"
+          width={374}
+          height={512}
           priority
-          sizes="(max-width: 640px) 100vw, 31rem"
           className="reference-hero-image"
         />
       </div>
