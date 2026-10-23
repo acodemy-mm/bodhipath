@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -12,14 +12,40 @@ import {
   TargetIcon,
   TrophyIcon,
   BellIcon,
+  CheckIcon,
+  PlayIcon,
+  RestartIcon,
+  ChevronIcon,
 } from "@/components/reference-icons";
-import { quoteOfDay } from "@/lib/content";
+import { quoteEvery } from "@/lib/content";
 import { TREE_THRESHOLDS, todayISODate } from "@/lib/gamification";
 import { getPrayersByIds } from "@/lib/prayers";
 import { useAppStore } from "@/lib/store";
 
 const WEEK = ["M", "T", "W", "T", "F", "S", "S"];
 const PLAN_DAYS = ["S", "M", "T", "W", "T", "F", "S"] as const;
+
+const QUOTE_INTERVAL_MS = 15 * 60 * 1000;
+
+function useRotatingQuote() {
+  const [quote, setQuote] = useState(() => quoteEvery(QUOTE_INTERVAL_MS));
+
+  useEffect(() => {
+    const update = () => setQuote(quoteEvery(QUOTE_INTERVAL_MS));
+    const wait = QUOTE_INTERVAL_MS - (Date.now() % QUOTE_INTERVAL_MS);
+    let interval = 0;
+    const timeout = window.setTimeout(() => {
+      update();
+      interval = window.setInterval(update, QUOTE_INTERVAL_MS);
+    }, wait);
+    return () => {
+      window.clearTimeout(timeout);
+      window.clearInterval(interval);
+    };
+  }, []);
+
+  return quote;
+}
 
 function formatClock(time: string) {
   const [hourText, minuteText] = time.split(":");
@@ -38,9 +64,14 @@ export default function HomePage() {
     worshipPlans,
     activeWorshipPlanId,
     habitCompletions,
-    toggleHabitCompletion,
+    worshipDayStarts,
+    sessions,
+    startWorshipDay,
+    completeWorshipDay,
+    restartWorshipDay,
   } = useAppStore();
-  const quote = quoteOfDay();
+  const quote = useRotatingQuote();
+  const [prayersOpen, setPrayersOpen] = useState(false);
 
   const todayKey = todayISODate();
   const todayWeekday = new Date().getDay();
@@ -61,6 +92,31 @@ export default function HomePage() {
     () => getPrayersByIds(activePrayerIds),
     [activePrayerIds],
   );
+  const startedAt = activePlan
+    ? worshipDayStarts[`${todayKey}:${activePlan.id}`]
+    : undefined;
+  const latestWorship = sessions.find(
+    (session) =>
+      session.type === "worship" &&
+      session.worship_plan_id === activePlan?.id &&
+      session.created_at.slice(0, 10) === todayKey,
+  );
+  const roundDone = Boolean(
+    startedAt && latestWorship && latestWorship.created_at >= startedAt,
+  );
+  const playing = Boolean(startedAt) && !roundDone;
+
+  useEffect(() => {
+    if (!activePlan || !roundDone) return;
+    const missing = habitPrayers.some((prayer) => !todayDone.includes(prayer.id));
+    if (missing) completeWorshipDay(activePlan.id);
+  }, [
+    activePlan,
+    completeWorshipDay,
+    habitPrayers,
+    roundDone,
+    todayDone,
+  ]);
 
   if (!profile) return null;
 
@@ -140,7 +196,47 @@ export default function HomePage() {
                 ))}
               </div>
             </div>
-            <h2>{activePlan.name}</h2>
+            <div className="worship-plan-summary__title">
+              <h2>{activePlan.name}</h2>
+              <div className="worship-plan-summary__actions">
+                {roundDone ? (
+                  <>
+                    <span className="worship-day-done">
+                      <CheckIcon /> Completed
+                    </span>
+                    <button
+                      type="button"
+                      className="worship-day-restart"
+                      onClick={() => {
+                        restartWorshipDay(activePlan.id);
+                        setPrayersOpen(false);
+                      }}
+                    >
+                      <RestartIcon /> Restart
+                    </button>
+                  </>
+                ) : playing ? (
+                  <button
+                    type="button"
+                    className="worship-day-complete"
+                    onClick={() => completeWorshipDay(activePlan.id)}
+                  >
+                    <CheckIcon /> Completed
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="worship-day-play"
+                    onClick={() => {
+                      startWorshipDay(activePlan.id);
+                      setPrayersOpen(true);
+                    }}
+                  >
+                    <PlayIcon /> Play
+                  </button>
+                )}
+              </div>
+            </div>
             <p>
               <BellIcon /> Notify {activePlan.notifyMinutes} min before
               <span>
@@ -150,38 +246,45 @@ export default function HomePage() {
           </div>
         ) : null}
 
-        <div className="worship-plan-progress">
-          Habit tracker · {doneCount}/{habitPrayers.length} complete today
-        </div>
+        <button
+          type="button"
+          className="worship-plan-progress habit-accordion"
+          aria-expanded={prayersOpen}
+          aria-controls="home-prayer-list"
+          onClick={() => setPrayersOpen((open) => !open)}
+        >
+          <span>
+            Habit tracker · {doneCount}/{habitPrayers.length} complete today
+          </span>
+          <ChevronIcon />
+        </button>
 
-        {!scheduledToday ? (
-          <p className="reference-habit-rest">
-            This plan is not scheduled today.
-          </p>
-        ) : (
-          <ul className="reference-habit-list">
-            {habitPrayers.map((prayer) => {
-              const checked = todayDone.includes(prayer.id);
-              return (
-                <li key={prayer.id}>
-                  <label
-                    className={`reference-habit-item ${checked ? "is-done" : ""}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleHabitCompletion(prayer.id)}
-                    />
-                    <span>
+        <div
+          className={`habit-prayers ${prayersOpen ? "is-open" : ""}`}
+          id="home-prayer-list"
+        >
+          <div>
+            {!scheduledToday ? (
+              <p className="reference-habit-rest">
+                This plan is not scheduled today.
+              </p>
+            ) : (
+              <ul className="reference-habit-list">
+                {habitPrayers.map((prayer) => {
+                  const checked = todayDone.includes(prayer.id);
+                  return (
+                    <li
+                      key={prayer.id}
+                      className={`reference-habit-item ${checked ? "is-done" : ""}`}
+                    >
                       <strong>{prayer.title_mm}</strong>
-                      <small>{prayer.title_en}</small>
-                    </span>
-                  </label>
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        </div>
       </section>
 
       <section className="reference-level-card">
@@ -214,8 +317,10 @@ export default function HomePage() {
       </section>
 
       <section className="reference-home-quote" aria-label="Daily quote">
-        <p>&ldquo;{quote.text_mm}&rdquo;</p>
-        <small>{quote.text_en}</small>
+        <div key={quote.id}>
+          <p>&ldquo;{quote.text_mm}&rdquo;</p>
+          <small>{quote.text_en}</small>
+        </div>
       </section>
 
       <div className="reference-quick-grid">

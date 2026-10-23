@@ -16,6 +16,7 @@ export default function PrayersPage() {
       const haystack = [
         prayer.title_mm,
         prayer.title_en,
+        prayer.about,
         prayer.body_mm,
         prayer.body_en,
         ...prayer.tags,
@@ -52,7 +53,7 @@ export default function PrayersPage() {
           {results.map((prayer) => (
             <Link
               key={prayer.id}
-              href={`/prayers/${prayer.id}`}
+              href={`/prayers/${encodeURIComponent(prayer.id)}`}
               className="gamify-choice flex items-center justify-between gap-3"
             >
               <span className="min-w-0">

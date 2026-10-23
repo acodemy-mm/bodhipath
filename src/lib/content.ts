@@ -332,6 +332,11 @@ export function quoteOfDay(): Quote {
   return QUOTES[day];
 }
 
+export function quoteEvery(intervalMs: number, now = Date.now()): Quote {
+  const slot = Math.floor(now / intervalMs) % QUOTES.length;
+  return QUOTES[slot];
+}
+
 export function getModule(slug: string) {
   return MODULES.find((m) => m.slug === slug);
 }

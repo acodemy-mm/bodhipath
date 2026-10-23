@@ -462,6 +462,36 @@ textarea {
   line-height: 1.15;
 }
 
+.section-page .gamify-page-title,
+.is-detail .gamify-page-title,
+.is-detail h1,
+.is-detail h2 {
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.recitation-list {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.recitation-verse {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.recitation-verse p {
+  margin: 0;
+  color: var(--cream);
+  font-size: 32px;
+  line-height: 1.75;
+  white-space: pre-line;
+}
+
+.recitation-verse p + p {
+  color: var(--text-secondary);
+}
+
 .gamify-page-description {
   margin: 0;
   color: var(--text-secondary);
@@ -796,6 +826,39 @@ textarea {
   line-height: 1.45;
 }
 
+.dictionary-alpha {
+  display: flex;
+  gap: 0.4rem;
+  overflow-x: auto;
+  padding-bottom: 0.2rem;
+}
+
+.dictionary-alpha button {
+  flex: none;
+  min-width: 2.2rem;
+  height: 2.2rem;
+  padding: 0 0.55rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  color: var(--cream);
+  font-weight: 700;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dictionary-alpha button.is-active {
+  border-color: transparent;
+  color: #1a2418;
+  background: #f3d56a;
+}
+
+.dictionary-meaning {
+  width: 100%;
+  height: auto;
+  border-radius: 0.9rem;
+  background: #f7f3e8;
+}
+
 .gamify-choice {
   width: 100%;
   border: 1px solid var(--border-subtle);
@@ -940,12 +1003,92 @@ textarea {
 }
 
 .reference-habit-card {
-  margin-top: 0.85rem;
-  padding: 0.9rem 1rem;
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1.15rem 1.1rem 1.2rem;
   border: 1px solid rgba(143, 213, 133, 0.2);
   border-radius: 1.2rem;
   background: linear-gradient(135deg, rgba(28, 89, 60, 0.88), rgba(15, 57, 42, 0.82));
   box-shadow: inset 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.reference-habit-card .reference-habit-heading {
+  margin-bottom: 0;
+}
+
+.reference-habit-card .worship-plan-summary {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.reference-habit-card .reference-habit-days {
+  gap: 0.4rem;
+}
+
+.reference-habit-card .reference-habit-days span {
+  width: 1.6rem;
+  height: 1.6rem;
+  font-size: 0.6rem;
+}
+
+.reference-habit-card .worship-plan-progress {
+  margin: 0.15rem 0 0;
+}
+
+.habit-accordion {
+  width: 100%;
+  padding: 0.15rem 0;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.habit-accordion svg {
+  width: 1rem;
+  height: 1rem;
+  margin-left: auto;
+  color: var(--gold-soft);
+  transition: transform 180ms ease;
+}
+
+.habit-accordion[aria-expanded="true"] svg {
+  transform: rotate(180deg);
+}
+
+.habit-prayers {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-top: -1rem;
+  transition: grid-template-rows 220ms ease, margin-top 220ms ease;
+}
+
+.habit-prayers.is-open {
+  grid-template-rows: 1fr;
+  margin-top: 0;
+}
+
+.habit-prayers > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.habit-prayers.is-open > div {
+  overflow: visible;
+}
+
+.reference-habit-card .reference-habit-list {
+  gap: 0.7rem;
+}
+
+.reference-habit-card .reference-habit-item {
+  align-items: center;
+  min-height: 3rem;
+  padding: 0.9rem 1rem;
+  line-height: 1.5;
 }
 
 .reference-habit-heading {
@@ -1064,12 +1207,20 @@ textarea {
   font-weight: 600;
 }
 
-.worship-plan-summary,
+.worship-plan-label {
+  margin: 0.15rem 0 0;
+  color: var(--text-tertiary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
 .worship-plan-card {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.55rem;
   width: 100%;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.15rem;
   padding: 0.85rem;
   border: 1px solid rgba(143, 213, 133, 0.16);
   border-radius: 1rem;
@@ -1077,19 +1228,124 @@ textarea {
   background: rgba(242, 239, 230, 0.06);
 }
 
-.worship-plan-card {
+.worship-plan-card__main {
+  display: grid;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  background: transparent;
   cursor: pointer;
+}
+
+.worship-plan-card__main:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.worship-plan-actions {
+  display: flex;
+  gap: 0.85rem;
+}
+
+.worship-plan-actions button {
+  padding: 0;
+  border: 0;
+  color: var(--gold-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: transparent;
+  cursor: pointer;
+}
+
+.worship-plan-actions button.is-danger {
+  color: var(--accent-danger);
 }
 
 .worship-plan-card.is-active {
   border-color: rgba(238, 212, 89, 0.7);
 }
 
-.worship-plan-summary__top {
+.worship-plan-summary__top,
+.worship-plan-summary__title {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
+}
+
+.worship-plan-summary__title {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.worship-plan-summary__title h2 {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.worship-plan-summary__actions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-left: auto;
+}
+
+.worship-day-play,
+.worship-day-complete,
+.worship-day-done,
+.worship-day-restart {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  min-height: 2.35rem;
+  border: 0;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.worship-day-play {
+  padding: 0.4rem 0.9rem 0.4rem 0.7rem;
+  color: #18231a;
+  background: linear-gradient(135deg, #ffdf69, #f5bc3e);
+  cursor: pointer;
+}
+
+.worship-day-complete {
+  padding: 0.4rem 0.85rem;
+  color: #142418;
+  background: linear-gradient(135deg, #9adf90, #3e8f62);
+  cursor: pointer;
+}
+
+.worship-day-done {
+  padding: 0.4rem 0.8rem;
+  color: rgba(242, 239, 230, 0.72);
+  background: rgba(143, 213, 133, 0.16);
+}
+
+.worship-day-restart {
+  padding: 0.4rem 0.8rem;
+  color: #f3d56a;
+  background: transparent;
+  border: 1px solid rgba(243, 213, 106, 0.5);
+  cursor: pointer;
+}
+
+.worship-day-play svg,
+.worship-day-complete svg,
+.worship-day-done svg,
+.worship-day-restart svg {
+  width: 0.95rem;
+  height: 0.95rem;
 }
 
 .worship-plan-summary h2,
@@ -1162,6 +1418,9 @@ textarea {
   border: 1px solid rgba(143, 213, 133, 0.16);
   border-radius: 0.9rem;
   background: rgba(5, 30, 20, 0.28);
+}
+
+.reference-habit-pick {
   cursor: pointer;
 }
 
@@ -1235,11 +1494,27 @@ textarea {
 
 .reference-home-quote {
   margin-top: 0.85rem;
-  padding: 1rem 1.1rem;
+  padding: 1.15rem 1.2rem;
   border: 1px solid rgba(143, 213, 133, 0.16);
   border-radius: 1.15rem;
   text-align: center;
   background: linear-gradient(180deg, rgba(24, 80, 57, 0.55), rgba(12, 48, 36, 0.45));
+}
+
+.reference-home-quote p,
+.reference-home-quote small {
+  animation: quote-in 320ms ease;
+}
+
+@keyframes quote-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .reference-home-quote p {

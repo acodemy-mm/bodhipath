@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function PracticeHubPage() {
   return (
-    <section className="gamify-page animate-grow-in">
+    <section className="gamify-page section-page animate-grow-in">
       <PageHeader
         title="လေ့ကျင့်ရန် · Practice"
         description="တရားထိုင်ခြင်းနှင့် ပုတီးစိပ်ခြင်း"

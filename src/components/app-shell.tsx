@@ -29,7 +29,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       {detail ? <DetailBack /> : <AppNav />}
       <main
         className={`app-shell mx-auto min-h-dvh w-full px-4 ${
-          detail ? "pb-10 pt-2 md:pb-10" : "pb-36 pt-6 md:pb-10 md:pt-8"
+          detail
+            ? "is-detail pb-10 pt-2 md:pb-10"
+            : "pb-36 pt-6 md:pb-10 md:pt-8"
         }`}
       >
         {children}
@@ -40,6 +42,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 function DetailBack() {
   const router = useRouter();
+  const pathname = usePathname();
+  const prayerDetail = /^\/prayers\/.+/.test(pathname);
 
   return (
     <div className="detail-topbar app-shell mx-auto w-full">
@@ -47,7 +51,11 @@ function DetailBack() {
         type="button"
         className="detail-back"
         aria-label="Back"
-        onClick={() => router.back()}
+        onClick={() => {
+          if (prayerDetail) router.push("/prayers");
+          else if (pathname === "/prayers") router.push("/home");
+          else router.back();
+        }}
       >
         <ArrowLeftIcon />
       </button>

@@ -1,6 +1,6 @@
 export type Goal = "meditation" | "exam" | "both";
 
-export type PracticeType = "meditate" | "beads";
+export type PracticeType = "meditate" | "beads" | "worship";
 
 export type ModuleTrack = "vipassana" | "abhidhamma" | "pali";
 

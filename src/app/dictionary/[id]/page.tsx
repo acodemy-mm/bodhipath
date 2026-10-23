@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
-import { PageHeader, Surface } from "@/components/gamification-ui";
-import { getDictionaryEntry } from "@/lib/learning-tools";
+import { PageHeader } from "@/components/gamification-ui";
+import { getAbidanEntry } from "@/lib/abidan";
+
+export const dynamic = "force-dynamic";
 
 export default async function DictionaryDetailPage({
   params,
@@ -8,52 +10,26 @@ export default async function DictionaryDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const entry = getDictionaryEntry(id);
+  const entry = getAbidanEntry(Number(id));
   if (!entry) notFound();
 
   return (
     <section className="gamify-page animate-grow-in">
-      <PageHeader title={entry.pali} description={entry.myanmar} />
+      <PageHeader title={entry.word} description="အဓိပ္ပာယ်" />
 
-      <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-accent-merit-soft">
-        {entry.category}
-      </p>
-
-      <div className="grid gap-3">
-        <Surface className="grid gap-2 p-4">
-          <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-accent-merit-soft">
-            Spelling
-          </p>
-          <p className="font-display text-2xl text-cream">{entry.spelling}</p>
-          <p className="text-sm text-text-secondary">{entry.myanmar}</p>
-        </Surface>
-
-        <Surface className="grid gap-2 p-4">
-          <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-accent-merit-soft">
-            Meaning
-          </p>
-          <p className="text-sm leading-relaxed text-cream">{entry.english}</p>
-          <p className="text-sm leading-relaxed text-text-secondary">
-            {entry.meaning}
-          </p>
-          {entry.example_mm || entry.example_en ? (
-            <div className="rounded-[var(--radius-md)] bg-surface-muted p-3 text-sm">
-              {entry.example_mm ? (
-                <p className="text-cream">{entry.example_mm}</p>
-              ) : null}
-              {entry.example_en ? (
-                <p className="mt-1 text-text-tertiary">{entry.example_en}</p>
-              ) : null}
-            </div>
-          ) : null}
-        </Surface>
-
-        <Surface className="grid gap-2 p-4">
-          <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-accent-merit-soft">
-            Voice tone
-          </p>
-          <p className="text-sm leading-relaxed text-cream">{entry.voice_tone}</p>
-        </Surface>
+      <div className="grid gap-4">
+        {entry.pages.map((page) => (
+          <figure key={`${page.bookId}-${page.pdfIndex}`} className="grid gap-2">
+            <img
+              src={`/api/dictionary/page?book=${encodeURIComponent(page.bookId)}&index=${page.pdfIndex}`}
+              alt={`${entry.word} အဓိပ္ပာယ်`}
+              className="dictionary-meaning"
+            />
+            <figcaption className="text-xs text-text-tertiary">
+              {page.bookName} · စာမျက်နှာ {page.page}
+            </figcaption>
+          </figure>
+        ))}
       </div>
     </section>
   );

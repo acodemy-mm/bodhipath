@@ -1,0 +1,5 @@
+Tipitaka Pali–Myanmar Dictionary word index
+Source: https://github.com/pndaza/Tipitaka_Abidan
+Database: app/src/main/assets/databases/tipitaka_abidan.db
+Developed by Pn Daza. Headwords point at the printed volumes and pages.
+The definition text lives in those volumes; this database stores the headword index.

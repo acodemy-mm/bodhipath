@@ -17,7 +17,7 @@ import {
   todayISODate,
   treeStageFromMerit,
 } from "./gamification";
-import { PRESET_HABIT_PRAYER_IDS } from "./prayers";
+import { getPrayer, PRESET_HABIT_PRAYER_IDS } from "./prayers";
 import type {
   AppState,
   Goal,
@@ -71,6 +71,7 @@ function emptyHabitState(): Pick<
   | "worshipPlans"
   | "activeWorshipPlanId"
   | "habitCompletions"
+  | "worshipDayStarts"
 > {
   const starter = starterWorshipPlan();
   return {
@@ -81,6 +82,7 @@ function emptyHabitState(): Pick<
     worshipPlans: [starter],
     activeWorshipPlanId: starter.id,
     habitCompletions: {},
+    worshipDayStarts: {},
   };
 }
 
@@ -107,16 +109,11 @@ function normalizeState(raw: Partial<AppState> | null | undefined): AppState {
       ? raw.habitSelectedPrayerIds
       : habits.habitSelectedPrayerIds,
   });
-  const worshipPlans = raw?.worshipPlans?.length
+  const worshipPlans = Array.isArray(raw?.worshipPlans)
     ? raw.worshipPlans
     : [fallbackPlan];
-  const activeWorshipPlanId = worshipPlans.some(
-    (plan) => plan.id === raw?.activeWorshipPlanId,
-  )
-    ? raw!.activeWorshipPlanId!
-    : worshipPlans[0].id;
   const active =
-    worshipPlans.find((plan) => plan.id === activeWorshipPlanId) ??
+    worshipPlans.find((plan) => plan.id === raw?.activeWorshipPlanId) ??
     worshipPlans[0];
 
   return emptyAppState({
@@ -126,12 +123,16 @@ function normalizeState(raw: Partial<AppState> | null | undefined): AppState {
     sessions: raw?.sessions ?? [],
     quizAttempts: raw?.quizAttempts ?? [],
     habitPlanMode: raw?.habitPlanMode ?? habits.habitPlanMode,
-    habitSelectedPrayerIds: active.prayerIds,
-    habitTime: active.time,
-    habitWeekdays: active.weekdays,
+    habitSelectedPrayerIds: active?.prayerIds ?? habits.habitSelectedPrayerIds,
+    habitTime: active?.time ?? habits.habitTime,
+    habitWeekdays: active?.weekdays ?? habits.habitWeekdays,
     worshipPlans,
-    activeWorshipPlanId: active.id,
+    activeWorshipPlanId: active?.id ?? "",
     habitCompletions: raw?.habitCompletions ?? {},
+    worshipDayStarts:
+      raw?.worshipDayStarts && typeof raw.worshipDayStarts === "object"
+        ? raw.worshipDayStarts
+        : {},
   });
 }
 
@@ -183,6 +184,7 @@ type StoreValue = {
   worshipPlans: WorshipPlan[];
   activeWorshipPlanId: string;
   habitCompletions: Record<string, string[]>;
+  worshipDayStarts: Record<string, string>;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => void;
@@ -199,7 +201,12 @@ type StoreValue = {
   setHabitTime: (time: string) => void;
   toggleHabitWeekday: (day: number) => void;
   toggleHabitCompletion: (prayerId: string) => void;
+  startWorshipDay: (planId: string) => void;
+  completeWorshipDay: (planId: string) => void;
+  restartWorshipDay: (planId: string) => void;
   createWorshipPlan: (input: Omit<WorshipPlan, "id">) => void;
+  updateWorshipPlan: (planId: string, input: Omit<WorshipPlan, "id">) => void;
+  deleteWorshipPlan: (planId: string) => void;
   setActiveWorshipPlan: (planId: string) => void;
 };
 
@@ -485,10 +492,55 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           name: input.name.trim() || "My plan",
           notifyMinutes: Math.max(0, input.notifyMinutes),
         };
-        return applyActivePlan(plan, {
-          ...prev,
-          worshipPlans: [...prev.worshipPlans, plan],
-        });
+        const worshipPlans = [...prev.worshipPlans, plan];
+        if (prev.worshipPlans.length === 0) {
+          return applyActivePlan(plan, { ...prev, worshipPlans });
+        }
+        return { ...prev, worshipPlans };
+      });
+    },
+    [persist],
+  );
+
+  const updateWorshipPlan = useCallback(
+    (planId: string, input: Omit<WorshipPlan, "id">) => {
+      persist((prev) => {
+        const worshipPlans = prev.worshipPlans.map((plan) =>
+          plan.id === planId
+            ? {
+                ...plan,
+                ...input,
+                id: planId,
+                name: input.name.trim() || plan.name,
+                prayerIds: input.prayerIds.length ? input.prayerIds : plan.prayerIds,
+                weekdays: input.weekdays.length ? input.weekdays : plan.weekdays,
+                notifyMinutes: Math.max(0, input.notifyMinutes),
+              }
+            : plan,
+        );
+        const updated = worshipPlans.find((plan) => plan.id === planId);
+        if (!updated) return prev;
+        if (prev.activeWorshipPlanId === planId) {
+          return applyActivePlan(updated, { ...prev, worshipPlans });
+        }
+        return { ...prev, worshipPlans };
+      });
+    },
+    [persist],
+  );
+
+  const deleteWorshipPlan = useCallback(
+    (planId: string) => {
+      persist((prev) => {
+        const worshipPlans = prev.worshipPlans.filter((plan) => plan.id !== planId);
+        if (prev.activeWorshipPlanId !== planId) {
+          return { ...prev, worshipPlans };
+        }
+        const next = worshipPlans[0];
+        if (!next) {
+          return { ...prev, worshipPlans, activeWorshipPlanId: "" };
+        }
+        return applyActivePlan(next, { ...prev, worshipPlans });
       });
     },
     [persist],
@@ -553,6 +605,121 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     [persist],
   );
 
+  const startWorshipDay = useCallback(
+    (planId: string) => {
+      persist((prev) => {
+        const plan = prev.worshipPlans.find((item) => item.id === planId);
+        if (!plan) return prev;
+        const key = `${todayISODate()}:${planId}`;
+        if (prev.worshipDayStarts[key]) return prev;
+        return {
+          ...prev,
+          worshipDayStarts: {
+            ...prev.worshipDayStarts,
+            [key]: new Date().toISOString(),
+          },
+        };
+      });
+    },
+    [persist],
+  );
+
+  const completeWorshipDay = useCallback(
+    (planId: string) => {
+      persist((prev) => {
+        if (!prev.profile) return prev;
+        const plan = prev.worshipPlans.find((item) => item.id === planId);
+        if (!plan) return prev;
+        const today = todayISODate();
+        const key = `${today}:${planId}`;
+        const startedAt = prev.worshipDayStarts[key];
+        if (!startedAt) return prev;
+        const latestSession = prev.sessions.find(
+          (session) =>
+            session.type === "worship" &&
+            session.worship_plan_id === planId &&
+            session.created_at.slice(0, 10) === today,
+        );
+        const roundFinished = Boolean(
+          latestSession && latestSession.created_at >= startedAt,
+        );
+
+        const previousIds = prev.habitCompletions[today] ?? [];
+        const prayerIds = plan.prayerIds.map((id) => getPrayer(id)?.id ?? id);
+        const completedIds = Array.from(new Set([...previousIds, ...prayerIds]));
+        const habitCompletions = {
+          ...prev.habitCompletions,
+          [today]: completedIds,
+        };
+        let next: AppState = { ...prev, habitCompletions };
+        if (previousIds.length === 0 && completedIds.length > 0) {
+          const streak = applyStreak({
+            last_practice_date: prev.profile.last_practice_date,
+            streak_current: prev.profile.streak_current,
+            streak_longest: prev.profile.streak_longest,
+          });
+          next = {
+            ...next,
+            profile: {
+              ...prev.profile,
+              last_practice_date: streak.last_practice_date,
+              streak_current: streak.streak_current,
+              streak_longest: streak.streak_longest,
+            },
+            earnedBadgeSlugs: awardBadges(
+              { ...prev.profile, streak_current: streak.streak_current },
+              prev.earnedBadgeSlugs,
+              {},
+            ),
+          };
+        }
+        if (roundFinished) return next;
+        return {
+          ...next,
+          sessions: [
+            {
+              id: uid("sess"),
+              type: "worship" as const,
+              merit_awarded: 0,
+              worship_plan_id: plan.id,
+              worship_plan_name: plan.name,
+              created_at: new Date().toISOString(),
+            },
+            ...next.sessions,
+          ].slice(0, 50),
+        };
+      });
+    },
+    [persist],
+  );
+
+  const restartWorshipDay = useCallback(
+    (planId: string) => {
+      persist((prev) => {
+        const plan = prev.worshipPlans.find((item) => item.id === planId);
+        if (!plan) return prev;
+        const today = todayISODate();
+        const key = `${today}:${planId}`;
+        if (!prev.worshipDayStarts[key]) return prev;
+        const prayerIds = new Set(
+          plan.prayerIds.map((id) => getPrayer(id)?.id ?? id),
+        );
+        const { [key]: _startedAt, ...worshipDayStarts } = prev.worshipDayStarts;
+        return {
+          ...prev,
+          worshipDayStarts,
+          habitCompletions: {
+            ...prev.habitCompletions,
+            [today]: (prev.habitCompletions[today] ?? []).filter(
+              (id) => !prayerIds.has(id),
+            ),
+          },
+        };
+      });
+    },
+    [persist],
+  );
+
   const value = useMemo<StoreValue>(
     () => ({
       ready,
@@ -568,6 +735,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       worshipPlans: state.worshipPlans,
       activeWorshipPlanId: state.activeWorshipPlanId,
       habitCompletions: state.habitCompletions,
+      worshipDayStarts: state.worshipDayStarts,
       signUp,
       signIn,
       signOut,
@@ -580,7 +748,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       setHabitTime,
       toggleHabitWeekday,
       toggleHabitCompletion,
+      startWorshipDay,
+      completeWorshipDay,
+      restartWorshipDay,
       createWorshipPlan,
+      updateWorshipPlan,
+      deleteWorshipPlan,
       setActiveWorshipPlan,
     }),
     [
@@ -598,7 +771,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       setHabitTime,
       toggleHabitWeekday,
       toggleHabitCompletion,
+      startWorshipDay,
+      completeWorshipDay,
+      restartWorshipDay,
       createWorshipPlan,
+      updateWorshipPlan,
+      deleteWorshipPlan,
       setActiveWorshipPlan,
     ],
   );

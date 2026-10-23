@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { PageHeader, Surface } from "@/components/gamification-ui";
-import { BellIcon, BookIcon } from "@/components/reference-icons";
+import { BellIcon } from "@/components/reference-icons";
 import { PRAYER_DOCUMENTS, PRESET_HABIT_PRAYER_IDS } from "@/lib/prayers";
 import { useAppStore } from "@/lib/store";
+import type { WorshipPlan } from "@/lib/types";
 
 const PLAN_DAYS = ["SU", "MO", "TU", "WE", "TH", "FR", "SA"] as const;
 
@@ -20,16 +19,63 @@ function formatClock(time: string) {
   return `${hour12}:${String(minute).padStart(2, "0")} ${suffix}`;
 }
 
+function PlanCard({
+  plan,
+  applied,
+  onApply,
+  onEdit,
+  onDelete,
+}: {
+  plan: WorshipPlan;
+  applied?: boolean;
+  onApply?: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  return (
+    <article className={`worship-plan-card ${applied ? "is-active" : ""}`}>
+      <button
+        type="button"
+        className="worship-plan-card__main"
+        onClick={onApply}
+        disabled={!onApply}
+      >
+        <div className="worship-plan-summary__top">
+          <span className="worship-plan-time">{formatClock(plan.time)}</span>
+          <span className="worship-plan-card__days">
+            {PLAN_DAYS.filter((_, day) => plan.weekdays.includes(day)).join(" ")}
+          </span>
+        </div>
+        <strong>{plan.name}</strong>
+        <small>
+          Notify {plan.notifyMinutes} min before · {plan.prayerIds.length} prayers
+          {applied ? " · Applied plan" : ""}
+        </small>
+      </button>
+      <div className="worship-plan-actions">
+        <button type="button" onClick={onEdit}>
+          Edit
+        </button>
+        <button type="button" className="is-danger" onClick={onDelete}>
+          Delete
+        </button>
+      </div>
+    </article>
+  );
+}
+
 export default function WorshipPlansPage() {
-  const router = useRouter();
   const {
     profile,
     worshipPlans,
     activeWorshipPlanId,
     createWorshipPlan,
+    updateWorshipPlan,
+    deleteWorshipPlan,
     setActiveWorshipPlan,
   } = useAppStore();
   const [creating, setCreating] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [time, setTime] = useState("06:30");
   const [notifyMinutes, setNotifyMinutes] = useState(5);
@@ -39,6 +85,10 @@ export default function WorshipPlansPage() {
   ]);
 
   if (!profile) return null;
+
+  const appliedPlan =
+    worshipPlans.find((plan) => plan.id === activeWorshipPlanId) ?? null;
+  const createdPlans = worshipPlans.filter((plan) => plan.id !== appliedPlan?.id);
 
   function toggleDay(day: number) {
     setWeekdays((current) =>
@@ -56,16 +106,37 @@ export default function WorshipPlansPage() {
     );
   }
 
+  function resetForm() {
+    setEditingId(null);
+    setName("");
+    setTime("06:30");
+    setNotifyMinutes(5);
+    setWeekdays([0, 1, 2, 3, 4, 5, 6]);
+    setPrayerIds([...PRESET_HABIT_PRAYER_IDS]);
+  }
+
+  function openCreate() {
+    resetForm();
+    setCreating(true);
+  }
+
+  function openEdit(plan: WorshipPlan) {
+    setEditingId(plan.id);
+    setName(plan.name);
+    setTime(plan.time);
+    setNotifyMinutes(plan.notifyMinutes);
+    setWeekdays(plan.weekdays);
+    setPrayerIds(plan.prayerIds);
+    setCreating(true);
+  }
+
   function savePlan() {
     if (!name.trim() || prayerIds.length === 0 || weekdays.length === 0) return;
-    createWorshipPlan({
-      name,
-      time,
-      weekdays,
-      notifyMinutes,
-      prayerIds,
-    });
-    router.push("/home");
+    const input = { name, time, weekdays, notifyMinutes, prayerIds };
+    if (editingId) updateWorshipPlan(editingId, input);
+    else createWorshipPlan(input);
+    setCreating(false);
+    resetForm();
   }
 
   return (
@@ -76,38 +147,25 @@ export default function WorshipPlansPage() {
       />
 
       <div className="grid gap-2">
-        {worshipPlans.map((plan) => {
-          const active = plan.id === activeWorshipPlanId;
-          return (
-            <button
-              key={plan.id}
-              type="button"
-              className={`worship-plan-card ${active ? "is-active" : ""}`}
-              onClick={() => setActiveWorshipPlan(plan.id)}
-            >
-              <div className="worship-plan-summary__top">
-                <span className="worship-plan-time">{formatClock(plan.time)}</span>
-                <span className="worship-plan-card__days">
-                  {PLAN_DAYS.filter((_, day) => plan.weekdays.includes(day)).join(
-                    " ",
-                  )}
-                </span>
-              </div>
-              <strong>{plan.name}</strong>
-              <small>
-                Notify {plan.notifyMinutes} min before · {plan.prayerIds.length}{" "}
-                prayers
-                {active ? " · Active habit" : ""}
-              </small>
-            </button>
-          );
-        })}
+        <p className="worship-plan-label">Applied plan</p>
+        {appliedPlan ? (
+          <PlanCard
+            plan={appliedPlan}
+            applied
+            onEdit={() => openEdit(appliedPlan)}
+            onDelete={() => deleteWorshipPlan(appliedPlan.id)}
+          />
+        ) : (
+          <Surface muted className="p-4 text-sm text-text-secondary">
+            No plan is applied yet. Choose one from your created plans.
+          </Surface>
+        )}
       </div>
 
       <button
         type="button"
         className="gamify-button gamify-button--primary"
-        onClick={() => setCreating((value) => !value)}
+        onClick={() => (creating ? (setCreating(false), resetForm()) : openCreate())}
       >
         {creating ? "Close form" : "Create plan"}
       </button>
@@ -183,25 +241,32 @@ export default function WorshipPlansPage() {
             onClick={savePlan}
             disabled={!name.trim() || prayerIds.length === 0 || weekdays.length === 0}
           >
-            Save and use as habit
+            {editingId ? "Save changes" : "Save plan"}
           </button>
         </Surface>
       ) : null}
 
-      <Surface muted className="grid gap-2 p-4">
-        <p className="inline-flex items-center gap-2 text-sm font-semibold text-cream">
-          <BookIcon /> Others
-        </p>
-        <p className="text-sm text-text-secondary">
-          Browse the full Buddhism prayer document list, then add items to a plan.
-        </p>
-        <Link href="/prayers" className="text-sm text-accent-merit-soft">
-          View prayer documents
-        </Link>
-      </Surface>
+      <div className="grid gap-2">
+        <p className="worship-plan-label">Created plans</p>
+        {createdPlans.length === 0 ? (
+          <Surface muted className="p-4 text-sm text-text-secondary">
+            Plans you create will show here. Apply one to use it on Home.
+          </Surface>
+        ) : (
+          createdPlans.map((plan) => (
+            <PlanCard
+              key={plan.id}
+              plan={plan}
+              onApply={() => setActiveWorshipPlan(plan.id)}
+              onEdit={() => openEdit(plan)}
+              onDelete={() => deleteWorshipPlan(plan.id)}
+            />
+          ))
+        )}
+      </div>
 
       <p className="inline-flex items-center gap-2 text-xs text-text-tertiary">
-        <BellIcon /> The active plan is the checklist on Home.
+        <BellIcon /> The applied plan is the checklist on Home.
       </p>
     </section>
   );

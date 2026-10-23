@@ -2,7 +2,7 @@ import { PageHeader, Surface } from "@/components/gamification-ui";
 
 export default function EventPage() {
   return (
-    <section className="gamify-page animate-grow-in">
+    <section className="gamify-page section-page animate-grow-in">
       <PageHeader
         title="Event"
         description="ပွဲတော်နှင့် အသိုင်းအဝိုင်း လှုပ်ရှားမှုများ"

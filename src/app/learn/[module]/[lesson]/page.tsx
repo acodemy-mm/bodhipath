@@ -7,7 +7,6 @@ import { BodhiScene } from "@/components/bodhi-scenes";
 import {
   ArrowLeftIcon,
   PlayIcon,
-  LockIcon,
   SproutIcon,
 } from "@/components/reference-icons";
 import {
@@ -99,33 +98,10 @@ export default function LessonPage() {
     sessions,
     quizAttempts,
   });
-  const locked = (profile?.merit_points ?? 0) < mod.unlock_merit;
   const done = completedLessonIds.includes(lesson.id);
   const moduleLessons = getLessonsForModule(mod.slug);
   const lessonIndex = moduleLessons.findIndex((item) => item.id === lesson.id);
   const quote = quoteOfDay();
-
-  if (locked) {
-    return (
-      <section className="gamify-page animate-grow-in">
-        <PageHeader
-          title={mod.title_mm}
-          description={mod.description_mm}
-        />
-        <Surface muted className="grid justify-items-center gap-3 p-6 text-center">
-          <span className="gamify-badge__mark">
-            <LockIcon />
-          </span>
-          <p className="text-sm text-text-secondary">
-            ဤ module ကို ဖွင့်ရန် {mod.unlock_merit} merit လိုအပ်သည်။
-          </p>
-          <Link href="/learn" className="gamify-button gamify-button--secondary">
-            ပြန်သွားရန်
-          </Link>
-        </Surface>
-      </section>
-    );
-  }
 
   function onComplete() {
     const result = completeLesson(lesson!.id);

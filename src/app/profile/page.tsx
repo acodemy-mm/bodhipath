@@ -40,8 +40,16 @@ export default function ProfilePage() {
     ...sessions.map((session) => ({
       id: session.id,
       date: session.created_at,
-      label: session.type === "meditate" ? "တရားထိုင်" : "ပုတီး",
-      detail: `+${session.merit_awarded} merit`,
+      label:
+        session.type === "meditate"
+          ? "တရားထိုင်"
+          : session.type === "worship"
+            ? session.worship_plan_name || "Worship"
+            : "ပုတီး",
+      detail:
+        session.type === "worship"
+          ? "Completed · 1 time"
+          : `+${session.merit_awarded} merit`,
     })),
     ...quizAttempts.map((attempt) => ({
       id: attempt.id,
@@ -54,7 +62,7 @@ export default function ProfilePage() {
     .slice(0, 8);
 
   return (
-    <section className="gamify-page animate-grow-in">
+    <section className="gamify-page section-page animate-grow-in">
       <PageHeader
         title="ပရိုဖိုင် · Profile"
         description={`${profile.display_name} · ${snapshot.tree.en}`}

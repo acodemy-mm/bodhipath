@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader, Surface } from "@/components/gamification-ui";
-import { getPrayer } from "@/lib/prayers";
+import { ArrowRightIcon } from "@/components/reference-icons";
+import { getNextPrayer, getPrayer } from "@/lib/prayers";
 
 export default async function PrayerDetailPage({
   params,
@@ -8,55 +10,85 @@ export default async function PrayerDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const prayer = getPrayer(id);
+  const prayer = getPrayer(decodeURIComponent(id));
   if (!prayer) notFound();
-
-  const sections = [
-    {
-      label: "Opening",
-      body: "Sit comfortably and take three quiet breaths. Bring the mind to this prayer before the words begin.",
-    },
-    {
-      label: "Recitation",
-      body: prayer.body_mm,
-      translation: prayer.body_en,
-    },
-    {
-      label: "Reflection",
-      body: "Pause after the recitation. Stay with the feeling of respect for a few breaths, without adding extra thoughts.",
-    },
-    {
-      label: "Closing",
-      body: "Offer the merit of this recitation to all beings, then return to the day with a calm mind.",
-    },
-  ];
+  const next = getNextPrayer(prayer.id);
 
   return (
     <section className="gamify-page animate-grow-in">
-      <PageHeader title={prayer.title_mm} description={prayer.title_en} />
+      <PageHeader title={prayer.title_mm} />
 
-      <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-accent-merit-soft">
-        {prayer.tags.join(" · ")}
-        {prayer.duration_mins ? ` · ~${prayer.duration_mins} min` : ""}
-      </p>
+      {prayer.about ? (
+        <Surface className="grid gap-2 p-4">
+          <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-accent-merit-soft">
+            About
+          </p>
+          <p className="whitespace-pre-line text-sm leading-relaxed text-text-secondary">
+            {prayer.about}
+          </p>
+        </Surface>
+      ) : null}
 
-      <div className="grid gap-3">
-        {sections.map((section) => (
-          <Surface key={section.label} className="grid gap-2 p-4">
-            <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-accent-merit-soft">
-              {section.label}
-            </p>
-            <p className="whitespace-pre-line text-sm leading-relaxed text-cream">
-              {section.body}
-            </p>
-            {section.translation ? (
-              <p className="whitespace-pre-line text-sm leading-relaxed text-text-secondary">
-                {section.translation}
-              </p>
-            ) : null}
-          </Surface>
-        ))}
-      </div>
+      <Surface className="grid gap-4 p-4">
+        <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-accent-merit-soft">
+          Recitation · {prayer.verses.length} lines
+        </p>
+        <div className="recitation-list">
+          {prayer.verses.map((verse, index) => (
+            <div key={`${prayer.id}-${index}`} className="recitation-verse">
+              <p>{verse.content}</p>
+              {verse.pronunciation ? <p>{verse.pronunciation}</p> : null}
+            </div>
+          ))}
+        </div>
+      </Surface>
+
+      <Surface className="grid gap-3 p-4">
+        <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-accent-merit-soft">
+          Next
+        </p>
+        {next ? (
+          <Link
+            href={`/prayers/${encodeURIComponent(next.id)}`}
+            className="gamify-choice flex items-center justify-between gap-3"
+          >
+            <span className="min-w-0">
+              <strong className="block text-base text-cream">
+                {next.title_mm}
+              </strong>
+              {next.title_en ? (
+                <span className="mt-1 block text-xs leading-relaxed text-text-secondary">
+                  {next.title_en}
+                </span>
+              ) : null}
+            </span>
+            <span
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[rgba(243,213,106,0.16)] text-[var(--gold-soft)]"
+              aria-hidden
+            >
+              <ArrowRightIcon />
+            </span>
+          </Link>
+        ) : (
+          <Link
+            href="/prayers"
+            className="gamify-choice flex items-center justify-between gap-3"
+          >
+            <span className="min-w-0">
+              <strong className="block text-base text-cream">Prayer Sar</strong>
+              <span className="mt-1 block text-xs leading-relaxed text-text-secondary">
+                Return to the full Prayer Sar list.
+              </span>
+            </span>
+            <span
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[rgba(243,213,106,0.16)] text-[var(--gold-soft)]"
+              aria-hidden
+            >
+              <ArrowRightIcon />
+            </span>
+          </Link>
+        )}
+      </Surface>
     </section>
   );
 }
