@@ -704,7 +704,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         const prayerIds = new Set(
           plan.prayerIds.map((id) => getPrayer(id)?.id ?? id),
         );
-        const { [key]: _startedAt, ...worshipDayStarts } = prev.worshipDayStarts;
+        const worshipDayStarts = { ...prev.worshipDayStarts };
+        delete worshipDayStarts[key];
         return {
           ...prev,
           worshipDayStarts,

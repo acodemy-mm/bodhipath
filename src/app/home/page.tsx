@@ -81,7 +81,10 @@ export default function HomePage() {
   const scheduledToday = activePlan
     ? activePlan.weekdays.includes(todayWeekday)
     : false;
-  const todayDone = habitCompletions[todayKey] ?? [];
+  const todayDone = useMemo(
+    () => habitCompletions[todayKey] ?? [],
+    [habitCompletions, todayKey],
+  );
 
   const activePrayerIds = useMemo(
     () => activePlan?.prayerIds ?? [],

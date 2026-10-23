@@ -73,6 +73,8 @@ export interface PracticeSession {
   duration_sec?: number;
   bead_count?: number;
   merit_awarded: number;
+  worship_plan_id?: string;
+  worship_plan_name?: string;
   created_at: string;
 }
 
@@ -113,4 +115,6 @@ export interface AppState {
   activeWorshipPlanId: string;
   /** Map of local YYYY-MM-DD → completed prayer document ids */
   habitCompletions: Record<string, string[]>;
+  /** Map of YYYY-MM-DD:planId → ISO start time for the current worship round */
+  worshipDayStarts: Record<string, string>;
 }
