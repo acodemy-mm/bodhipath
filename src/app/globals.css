@@ -470,6 +470,131 @@ textarea {
   line-height: 1.25;
 }
 
+.worship-play-list {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.worship-play-list__item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.7rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(143, 213, 133, 0.16);
+  border-radius: 0.85rem;
+  color: var(--cream);
+  text-align: left;
+  background: rgba(5, 30, 20, 0.28);
+  cursor: pointer;
+}
+
+.worship-play-list__item span {
+  display: grid;
+  width: 1.55rem;
+  height: 1.55rem;
+  flex: none;
+  place-items: center;
+  border-radius: 999px;
+  color: rgba(242, 239, 230, 0.62);
+  background: rgba(242, 239, 230, 0.08);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.worship-play-list__item strong {
+  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.worship-play-list__item.is-active {
+  border-color: rgba(243, 213, 106, 0.55);
+  background: rgba(61, 122, 74, 0.34);
+}
+
+.worship-play-list__item.is-active span {
+  color: #1a2418;
+  background: #f3d56a;
+}
+
+.worship-play-list__item.is-done {
+  border-color: rgba(181, 221, 115, 0.35);
+}
+
+.worship-play-title {
+  margin: 0.25rem 0 0;
+  color: var(--cream);
+  font-family: var(--font-display);
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.notification-item {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.prayer-about {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.prayer-about__trigger {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.2rem;
+  padding: 0.35rem 0.75rem 0.35rem 0.55rem;
+  border: 1px solid rgba(243, 213, 106, 0.42);
+  border-radius: 999px;
+  color: var(--gold-soft);
+  background: rgba(243, 213, 106, 0.1);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.prayer-about__trigger svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.prayer-about.is-open .prayer-about__trigger {
+  border-color: rgba(243, 213, 106, 0.7);
+  background: rgba(243, 213, 106, 0.18);
+}
+
+.prayer-about__panel {
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+}
+
+.prayer-about__panel p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.65;
+  white-space: pre-line;
+}
+
+.worship-play-actions {
+  position: sticky;
+  bottom: 0.75rem;
+  padding-top: 0.25rem;
+}
+
 .recitation-list {
   display: grid;
   gap: 1.75rem;

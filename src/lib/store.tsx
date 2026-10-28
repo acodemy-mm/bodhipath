@@ -6,9 +6,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import type { User } from "@supabase/supabase-js";
 import {
   applyStreak,
   BEAD_TARGET,
@@ -17,7 +19,9 @@ import {
   todayISODate,
   treeStageFromMerit,
 } from "./gamification";
+import { APP_NOTIFICATIONS } from "./notifications";
 import { getPrayer, PRESET_HABIT_PRAYER_IDS } from "./prayers";
+import { createClient, isSupabaseConfigured } from "./supabase/client";
 import type {
   AppState,
   Goal,
@@ -29,6 +33,10 @@ import type {
 
 const STORAGE_KEY = "bodhi-path-mvp-v2";
 const LEGACY_STORAGE_KEY = "bodhi-path-mvp-v1";
+
+function storageKeyFor(userId?: string | null) {
+  return userId ? `${STORAGE_KEY}:${userId}` : STORAGE_KEY;
+}
 
 function uid(prefix: string) {
   return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
@@ -93,6 +101,7 @@ function emptyAppState(partial?: Partial<AppState>): AppState {
     earnedBadgeSlugs: [],
     sessions: [],
     quizAttempts: [],
+    readNotificationIds: [],
     ...emptyHabitState(),
     ...partial,
   };
@@ -133,22 +142,69 @@ function normalizeState(raw: Partial<AppState> | null | undefined): AppState {
       raw?.worshipDayStarts && typeof raw.worshipDayStarts === "object"
         ? raw.worshipDayStarts
         : {},
+    readNotificationIds: Array.isArray(raw?.readNotificationIds)
+      ? raw.readNotificationIds
+      : [],
   });
 }
 
-function loadState(): AppState {
+function readRawState(key: string): AppState | null {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    return normalizeState(JSON.parse(raw) as Partial<AppState>);
+  } catch {
+    return null;
+  }
+}
+
+function loadState(userId?: string | null): AppState {
   if (typeof window === "undefined") {
     return emptyAppState();
   }
-  try {
-    const raw =
-      localStorage.getItem(STORAGE_KEY) ??
-      localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (raw) return normalizeState(JSON.parse(raw) as Partial<AppState>);
-  } catch {
-    /* ignore */
-  }
+  const keyed = userId ? readRawState(storageKeyFor(userId)) : null;
+  if (keyed) return keyed;
+  const legacy =
+    readRawState(STORAGE_KEY) ?? readRawState(LEGACY_STORAGE_KEY);
+  if (legacy) return legacy;
   return emptyAppState();
+}
+
+function saveState(state: AppState, userId?: string | null) {
+  if (typeof window === "undefined") return;
+  const key = storageKeyFor(userId ?? state.profile?.id);
+  localStorage.setItem(key, JSON.stringify(state));
+  // Keep legacy key in sync for the active session so older readers stay usable.
+  if (!userId && !state.profile?.id) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+}
+
+function profileFromUser(user: User, local?: Profile | null): Profile {
+  const meta = user.user_metadata ?? {};
+  const metaName =
+    typeof meta.display_name === "string" ? meta.display_name : undefined;
+  const metaOnboarding = meta.onboarding_complete === true;
+  return emptyProfile({
+    ...(local ?? {}),
+    id: user.id,
+    email: user.email ?? local?.email,
+    display_name:
+      metaName ||
+      local?.display_name ||
+      user.email?.split("@")[0] ||
+      "ယောဂီ",
+    onboarding_complete: local?.onboarding_complete || metaOnboarding,
+    goal: local?.goal ?? null,
+  });
+}
+
+function hydrateFromUser(user: User): AppState {
+  const local = loadState(user.id);
+  return {
+    ...local,
+    profile: profileFromUser(user, local.profile),
+  };
 }
 
 function awardBadges(
@@ -185,9 +241,14 @@ type StoreValue = {
   activeWorshipPlanId: string;
   habitCompletions: Record<string, string[]>;
   worshipDayStarts: Record<string, string>;
+  readNotificationIds: string[];
+  markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: (ids?: string[]) => void;
+  authConfigured: boolean;
   signUp: (email: string, password: string, displayName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
-  signOut: () => void;
+  signOut: () => Promise<void>;
+  updateDisplayName: (displayName: string) => Promise<void>;
   completeOnboarding: (goal: Goal, displayName: string) => void;
   logPractice: (input: {
     type: PracticeType;
@@ -215,15 +276,61 @@ const StoreContext = createContext<StoreValue | null>(null);
 export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [state, setState] = useState<AppState>(emptyAppState());
+  const authConfigured = isSupabaseConfigured();
+  const userIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    setState(loadState());
-    setReady(true);
-  }, []);
+    let cancelled = false;
+    let unsubscribe: (() => void) | undefined;
+
+    async function boot() {
+      if (!authConfigured) {
+        if (!cancelled) {
+          setState(loadState());
+          setReady(true);
+        }
+        return;
+      }
+
+      const supabase = createClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (cancelled) return;
+
+      if (session?.user) {
+        userIdRef.current = session.user.id;
+        setState(hydrateFromUser(session.user));
+      } else {
+        userIdRef.current = null;
+        setState(emptyAppState());
+      }
+      setReady(true);
+
+      const { data } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+        if (cancelled) return;
+        if (nextSession?.user) {
+          userIdRef.current = nextSession.user.id;
+          setState(hydrateFromUser(nextSession.user));
+        } else {
+          userIdRef.current = null;
+          setState(emptyAppState());
+        }
+      });
+      unsubscribe = () => data.subscription.unsubscribe();
+    }
+
+    void boot();
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [authConfigured]);
 
   useEffect(() => {
     if (!ready) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    saveState(state, userIdRef.current ?? state.profile?.id);
   }, [state, ready]);
 
   const persist = useCallback((updater: (prev: AppState) => AppState) => {
@@ -232,43 +339,117 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   const signUp = useCallback(
     async (email: string, password: string, displayName: string) => {
-      void password;
-      persist(() =>
-        emptyAppState({
+      const name = displayName || email.split("@")[0];
+
+      if (!authConfigured) {
+        const local = emptyAppState({
           profile: emptyProfile({
             email,
-            display_name: displayName || email.split("@")[0],
+            display_name: name,
             onboarding_complete: false,
           }),
-        }),
-      );
+        });
+        userIdRef.current = local.profile!.id;
+        persist(() => local);
+        return;
+      }
+
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: name,
+            onboarding_complete: false,
+          },
+        },
+      });
+      if (error) throw error;
+      if (!data.user) {
+        throw new Error("Sign up succeeded but no user was returned.");
+      }
+      if (!data.session) {
+        throw new Error(
+          "Check your email to confirm the account, then sign in.",
+        );
+      }
+      userIdRef.current = data.user.id;
+      persist(() => hydrateFromUser(data.user!));
     },
-    [persist],
+    [authConfigured, persist],
   );
 
   const signIn = useCallback(
     async (email: string, password: string) => {
-      void password;
-      persist((prev) => {
-        if (prev.profile?.email === email) return prev;
-        return emptyAppState({
-          profile: emptyProfile({
-            email,
-            display_name: email.split("@")[0],
-            onboarding_complete: false,
-          }),
+      if (!authConfigured) {
+        persist((prev) => {
+          if (prev.profile?.email === email) {
+            userIdRef.current = prev.profile.id;
+            return prev;
+          }
+          const next = emptyAppState({
+            profile: emptyProfile({
+              email,
+              display_name: email.split("@")[0],
+              onboarding_complete: false,
+            }),
+          });
+          userIdRef.current = next.profile!.id;
+          return next;
         });
+        return;
+      }
+
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
+      if (error) throw error;
+      if (!data.user) throw new Error("Sign in failed.");
+      userIdRef.current = data.user.id;
+      persist(() => hydrateFromUser(data.user));
     },
-    [persist],
+    [authConfigured, persist],
   );
 
-  const signOut = useCallback(() => {
+  const signOut = useCallback(async () => {
+    if (authConfigured) {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    }
+    userIdRef.current = null;
     persist(() => emptyAppState());
-  }, [persist]);
+  }, [authConfigured, persist]);
+
+  const updateDisplayName = useCallback(
+    async (displayName: string) => {
+      const name = displayName.trim();
+      if (!name) return;
+
+      if (authConfigured) {
+        const supabase = createClient();
+        const { error } = await supabase.auth.updateUser({
+          data: { display_name: name },
+        });
+        if (error) throw error;
+      }
+
+      persist((prev) => {
+        if (!prev.profile) return prev;
+        return {
+          ...prev,
+          profile: { ...prev.profile, display_name: name },
+        };
+      });
+    },
+    [authConfigured, persist],
+  );
 
   const completeOnboarding = useCallback(
     (goal: Goal, displayName: string) => {
+      const name = displayName.trim();
       persist((prev) => {
         if (!prev.profile) return prev;
         return {
@@ -276,13 +457,24 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           profile: {
             ...prev.profile,
             goal,
-            display_name: displayName || prev.profile.display_name,
+            display_name: name || prev.profile.display_name,
             onboarding_complete: true,
           },
         };
       });
+
+      if (authConfigured) {
+        const supabase = createClient();
+        void supabase.auth.updateUser({
+          data: {
+            display_name: name || undefined,
+            onboarding_complete: true,
+            goal,
+          },
+        });
+      }
     },
-    [persist],
+    [authConfigured, persist],
   );
 
   const applyMerit = useCallback(
@@ -721,9 +913,36 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     [persist],
   );
 
+  const markNotificationRead = useCallback(
+    (id: string) => {
+      persist((prev) => {
+        if (prev.readNotificationIds.includes(id)) return prev;
+        return {
+          ...prev,
+          readNotificationIds: [...prev.readNotificationIds, id],
+        };
+      });
+    },
+    [persist],
+  );
+
+  const markAllNotificationsRead = useCallback((ids?: string[]) => {
+    persist((prev) => {
+      const source =
+        ids && ids.length > 0
+          ? ids
+          : APP_NOTIFICATIONS.map((item) => item.id);
+      if (source.length === 0) return prev;
+      const next = Array.from(new Set([...prev.readNotificationIds, ...source]));
+      if (next.length === prev.readNotificationIds.length) return prev;
+      return { ...prev, readNotificationIds: next };
+    });
+  }, [persist]);
+
   const value = useMemo<StoreValue>(
     () => ({
       ready,
+      authConfigured,
       profile: state.profile,
       completedLessonIds: state.completedLessonIds,
       earnedBadgeSlugs: state.earnedBadgeSlugs,
@@ -737,9 +956,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       activeWorshipPlanId: state.activeWorshipPlanId,
       habitCompletions: state.habitCompletions,
       worshipDayStarts: state.worshipDayStarts,
+      readNotificationIds: state.readNotificationIds,
+      markNotificationRead,
+      markAllNotificationsRead,
       signUp,
       signIn,
       signOut,
+      updateDisplayName,
       completeOnboarding,
       logPractice,
       completeLesson,
@@ -759,10 +982,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     }),
     [
       ready,
+      authConfigured,
       state,
       signUp,
       signIn,
       signOut,
+      updateDisplayName,
       completeOnboarding,
       logPractice,
       completeLesson,
@@ -779,6 +1004,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       updateWorshipPlan,
       deleteWorshipPlan,
       setActiveWorshipPlan,
+      markNotificationRead,
+      markAllNotificationsRead,
     ],
   );
 

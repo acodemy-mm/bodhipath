@@ -117,4 +117,6 @@ export interface AppState {
   habitCompletions: Record<string, string[]>;
   /** Map of YYYY-MM-DD:planId → ISO start time for the current worship round */
   worshipDayStarts: Record<string, string>;
+  /** Notification ids the user has already viewed */
+  readNotificationIds: string[];
 }

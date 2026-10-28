@@ -5,12 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   BookIcon,
-  ChestIcon,
   FireIcon,
   LeafIcon,
-  StarIcon,
-  TargetIcon,
-  TrophyIcon,
   BellIcon,
   CheckIcon,
   PlayIcon,
@@ -18,7 +14,11 @@ import {
   ChevronIcon,
 } from "@/components/reference-icons";
 import { quoteEvery } from "@/lib/content";
-import { TREE_THRESHOLDS, todayISODate } from "@/lib/gamification";
+import { todayISODate } from "@/lib/gamification";
+import {
+  buildLaunchNotifications,
+  getUnreadNotificationCount,
+} from "@/lib/notifications";
 import { getPrayersByIds } from "@/lib/prayers";
 import { useAppStore } from "@/lib/store";
 
@@ -60,18 +60,29 @@ function formatClock(time: string) {
 export default function HomePage() {
   const {
     profile,
-    earnedBadgeSlugs,
     worshipPlans,
     activeWorshipPlanId,
     habitCompletions,
     worshipDayStarts,
     sessions,
-    startWorshipDay,
     completeWorshipDay,
     restartWorshipDay,
+    readNotificationIds,
   } = useAppStore();
   const quote = useRotatingQuote();
   const [prayersOpen, setPrayersOpen] = useState(false);
+  const launchNotifications = useMemo(
+    () =>
+      buildLaunchNotifications({
+        worshipPlans,
+        lastPracticeDate: profile?.last_practice_date,
+      }),
+    [worshipPlans, profile?.last_practice_date],
+  );
+  const unreadNotifications = getUnreadNotificationCount(
+    launchNotifications,
+    readNotificationIds,
+  );
 
   const todayKey = todayISODate();
   const todayWeekday = new Date().getDay();
@@ -123,20 +134,6 @@ export default function HomePage() {
 
   if (!profile) return null;
 
-  const stage = profile.tree_stage;
-  const level = stage + 1;
-  const currentThreshold = TREE_THRESHOLDS[stage] ?? 0;
-  const nextThreshold =
-    TREE_THRESHOLDS[stage + 1] ?? currentThreshold + 200;
-  const levelProgress = Math.min(
-    100,
-    Math.max(
-      0,
-      ((profile.merit_points - currentThreshold) /
-        Math.max(1, nextThreshold - currentThreshold)) *
-        100,
-    ),
-  );
   const practicedToday = profile.last_practice_date === todayKey;
   const activeDays = Math.min(7, profile.streak_current);
   const doneCount = habitPrayers.filter((prayer) =>
@@ -156,12 +153,18 @@ export default function HomePage() {
         <Link
           href="/notifications"
           className="reference-avatar"
-          aria-label="Open notifications"
+          aria-label={
+            unreadNotifications
+              ? `Open notifications, ${unreadNotifications} unread`
+              : "Open notifications"
+          }
         >
           <BellIcon />
-          <span className="reference-avatar-badge" aria-hidden>
-            2
-          </span>
+          {unreadNotifications > 0 ? (
+            <span className="reference-avatar-badge" aria-hidden>
+              {unreadNotifications > 9 ? "9+" : unreadNotifications}
+            </span>
+          ) : null}
         </Link>
       </header>
 
@@ -219,29 +222,27 @@ export default function HomePage() {
                     </button>
                   </>
                 ) : playing ? (
-                  <button
-                    type="button"
-                    className="worship-day-complete"
-                    onClick={() => completeWorshipDay(activePlan.id)}
-                  >
-                    <CheckIcon /> Completed
-                  </button>
+                  <>
+                    <Link href="/worship-play" className="worship-day-play">
+                      <PlayIcon /> Continue
+                    </Link>
+                    <button
+                      type="button"
+                      className="worship-day-complete"
+                      onClick={() => completeWorshipDay(activePlan.id)}
+                    >
+                      <CheckIcon /> Completed
+                    </button>
+                  </>
                 ) : (
-                  <button
-                    type="button"
-                    className="worship-day-play"
-                    onClick={() => {
-                      startWorshipDay(activePlan.id);
-                      setPrayersOpen(true);
-                    }}
-                  >
+                  <Link href="/worship-play" className="worship-day-play">
                     <PlayIcon /> Play
-                  </button>
+                  </Link>
                 )}
               </div>
             </div>
             <p>
-              <BellIcon /> Notify {activePlan.notifyMinutes} min before
+              <BellIcon /> Remind in-app {activePlan.notifyMinutes} min before
               <span>
                 <BookIcon /> {activePlan.prayerIds.length} Prayers
               </span>
@@ -290,35 +291,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="reference-level-card">
-        <div className="reference-level-row">
-          <span className="reference-level-icon">
-            <LeafIcon />
-          </span>
-          <span>
-            <span className="reference-level-title">Level {level}</span>
-            <span className="reference-level-subtitle">Mindful Learner</span>
-          </span>
-          <span className="reference-chest">
-            <ChestIcon />
-            {earnedBadgeSlugs.length > 0 && (
-              <span className="reference-notification">
-                {earnedBadgeSlugs.length}
-              </span>
-            )}
-          </span>
-        </div>
-        <div className="reference-progress-track">
-          <span style={{ width: `${levelProgress}%` }} />
-        </div>
-        <div className="reference-progress-meta">
-          <span>
-            {profile.merit_points} / {nextThreshold} XP
-          </span>
-          <span>{nextThreshold - profile.merit_points} to grow</span>
-        </div>
-      </section>
-
       <section className="reference-home-quote" aria-label="Daily quote">
         <div key={quote.id}>
           <p>&ldquo;{quote.text_mm}&rdquo;</p>
@@ -333,19 +305,20 @@ export default function HomePage() {
           icon={<BookIcon />}
         />
         <ReferenceQuickLink
-          href="/practice/flashcards"
-          label="Flashcards"
-          icon={<TargetIcon />}
+          href="/worship-plans"
+          label="Worship"
+          icon={<BellIcon />}
         />
         <ReferenceQuickLink
-          href="/dictionary"
-          label="Dictionary"
-          icon={<StarIcon />}
+          href="/practice/meditate"
+          label="Meditate"
+          icon={<LeafIcon />}
         />
         <ReferenceQuickLink
-          href="/leaderboard"
-          label="Leaderboard"
-          icon={<TrophyIcon />}
+          href="/notifications"
+          label="Reminders"
+          icon={<BellIcon />}
+          badge={unreadNotifications || undefined}
         />
       </div>
 

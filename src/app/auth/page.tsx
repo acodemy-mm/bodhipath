@@ -7,7 +7,7 @@ import { PageHeader, Surface } from "@/components/gamification-ui";
 import { useAppStore } from "@/lib/store";
 
 export default function AuthPage() {
-  const { signIn, signUp } = useAppStore();
+  const { signIn, signUp, authConfigured } = useAppStore();
   const router = useRouter();
   const [mode, setMode] = useState<"signin" | "signup">("signup");
   const [email, setEmail] = useState("");
@@ -19,8 +19,8 @@ export default function AuthPage() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
-    if (!email || password.length < 4) {
-      setError("အီးမေးလ်နှင့် စကားဝှက် (အနည်းဆုံး ၄ လုံး) လိုအပ်သည်။");
+    if (!email || password.length < 6) {
+      setError("အီးမေးလ်နှင့် စကားဝှက် (အနည်းဆုံး ၆ လုံး) လိုအပ်သည်။");
       return;
     }
     setLoading(true);
@@ -32,8 +32,12 @@ export default function AuthPage() {
         await signIn(email, password);
         router.push("/home");
       }
-    } catch {
-      setError("ဝင်ရောက်မှု မအောင်မြင်ပါ။ ထပ်မံကြိုးစားပါ။");
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "ဝင်ရောက်မှု မအောင်မြင်ပါ။ ထပ်မံကြိုးစားပါ။";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -46,7 +50,11 @@ export default function AuthPage() {
       </Link>
       <PageHeader
         title={mode === "signup" ? "အကောင့်ဖွင့်ရန်" : "ဝင်ရောက်ရန်"}
-        description="Demo mode — data is saved in this browser. Add Supabase env vars for cloud auth."
+        description={
+          authConfigured
+            ? "Email and password · synced with Supabase Auth."
+            : "Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to enable cloud auth. Local browser auth is active until then."
+        }
       />
 
       <Surface className="p-4">
@@ -84,6 +92,7 @@ export default function AuthPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="gamify-input"
+              minLength={6}
               required
             />
           </label>

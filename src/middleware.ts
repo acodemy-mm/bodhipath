@@ -49,13 +49,27 @@ export async function middleware(request: NextRequest) {
     (p) => pathname === p || pathname.startsWith(`${p}/`),
   );
 
-  if (!user && !isPublic) {
+  if (!user && !isPublic && pathname !== "/onboarding") {
     const url = request.nextUrl.clone();
     url.pathname = "/auth";
     return NextResponse.redirect(url);
   }
 
+  const onboardingComplete = user?.user_metadata?.onboarding_complete === true;
+
   if (user && pathname === "/auth") {
+    const url = request.nextUrl.clone();
+    url.pathname = onboardingComplete ? "/home" : "/onboarding";
+    return NextResponse.redirect(url);
+  }
+
+  if (user && !onboardingComplete && pathname !== "/onboarding" && !isPublic) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/onboarding";
+    return NextResponse.redirect(url);
+  }
+
+  if (user && onboardingComplete && pathname === "/onboarding") {
     const url = request.nextUrl.clone();
     url.pathname = "/home";
     return NextResponse.redirect(url);

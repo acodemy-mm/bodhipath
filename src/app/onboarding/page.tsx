@@ -10,27 +10,21 @@ const GOALS: { id: Goal; mm: string; en: string; desc: string }[] = [
   {
     id: "meditation",
     mm: "တရားထိုင်ခြင်း",
-    en: "Meditation",
-    desc: "နေ့စဉ် သတိပဋ္ဌာန်နှင့် ပုတီး",
-  },
-  {
-    id: "exam",
-    mm: "စာမေးပွဲ ပြင်ဆင်ခြင်း",
-    en: "Exam prep",
-    desc: "အဘိဓမ္မာနှင့် MCQ",
+    en: "Meditation & Worship",
+    desc: "နေ့စဉ် worship plan၊ တရားထိုင်ခြင်းနှင့် စေတနာ",
   },
   {
     id: "both",
-    mm: "နှစ်မျိုးလုံး",
-    en: "Both",
-    desc: "လေ့ကျင့် + သင်ယူ အပြည့်",
+    mm: "နေ့စဉ် လေ့ကျင့်မှု",
+    en: "Daily practice",
+    desc: "Worship · meditation · reminder · tracker",
   },
 ];
 
 export default function OnboardingPage() {
   const { profile, completeOnboarding } = useAppStore();
   const router = useRouter();
-  const [goal, setGoal] = useState<Goal | null>(null);
+  const [goal, setGoal] = useState<Goal | null>("meditation");
   const [name, setName] = useState(profile?.display_name ?? "");
 
   function submit() {

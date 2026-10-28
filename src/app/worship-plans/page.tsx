@@ -48,7 +48,8 @@ function PlanCard({
         </div>
         <strong>{plan.name}</strong>
         <small>
-          Notify {plan.notifyMinutes} min before · {plan.prayerIds.length} prayers
+          Remind in-app {plan.notifyMinutes} min before ·{" "}
+          {plan.prayerIds.length} prayers
           {applied ? " · Applied plan" : ""}
         </small>
       </button>
@@ -192,7 +193,7 @@ export default function WorshipPlansPage() {
               />
             </label>
             <label className="grid gap-1.5 text-sm">
-              Notify before
+              Remind in-app
               <select
                 className="gamify-input"
                 value={notifyMinutes}
@@ -200,7 +201,7 @@ export default function WorshipPlansPage() {
               >
                 {[0, 5, 10, 15, 30].map((minutes) => (
                   <option key={minutes} value={minutes}>
-                    {minutes} min
+                    {minutes} min before
                   </option>
                 ))}
               </select>

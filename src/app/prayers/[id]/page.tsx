@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageHeader, Surface } from "@/components/gamification-ui";
+import { PrayerAbout } from "@/components/prayer-about";
 import { ArrowRightIcon } from "@/components/reference-icons";
 import { getNextPrayer, getPrayer } from "@/lib/prayers";
 
@@ -17,17 +18,7 @@ export default async function PrayerDetailPage({
   return (
     <section className="gamify-page animate-grow-in">
       <PageHeader title={prayer.title_mm} />
-
-      {prayer.about ? (
-        <Surface className="grid gap-2 p-4">
-          <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-accent-merit-soft">
-            About
-          </p>
-          <p className="whitespace-pre-line text-sm leading-relaxed text-text-secondary">
-            {prayer.about}
-          </p>
-        </Surface>
-      ) : null}
+      <PrayerAbout about={prayer.about} />
 
       <Surface className="grid gap-4 p-4">
         <p className="text-[0.65rem] font-bold uppercase tracking-[0.16em] text-accent-merit-soft">

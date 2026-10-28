@@ -54,6 +54,7 @@ function DetailBack() {
         onClick={() => {
           if (prayerDetail) router.push("/prayers");
           else if (pathname === "/prayers") router.push("/home");
+          else if (pathname === "/worship-play") router.push("/home");
           else router.back();
         }}
       >

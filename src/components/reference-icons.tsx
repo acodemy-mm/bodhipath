@@ -177,3 +177,12 @@ export function BookIcon(props: IconProps) {
     </Icon>
   );
 }
+
+export function StoryIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M7 4.5h8.5A2.5 2.5 0 0 1 18 7v12.2l-3.2-1.6L12 19l-2.8-1.4L6 19.2V7A2.5 2.5 0 0 1 8.5 4.5" />
+      <path d="M9.2 9h5.6M9.2 12h5.6M9.2 15h3.4" />
+    </Icon>
+  );
+}

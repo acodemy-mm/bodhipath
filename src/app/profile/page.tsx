@@ -1,8 +1,8 @@
 "use client";
 
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import {
-  BadgeGrid,
   EmptyState,
   PageHeader,
   SectionHeading,
@@ -10,120 +10,153 @@ import {
   Surface,
   StatCard,
 } from "@/components/gamification-ui";
-import { createGamificationSnapshot } from "@/lib/gamification-view";
 import { useAppStore } from "@/lib/store";
-import { BodhiTree } from "@/components/bodhi-tree";
-import { TrophyIcon } from "@/components/reference-icons";
+
+function goalLabel(goal: string | null) {
+  if (goal === "meditation") return "တရားထိုင်ခြင်း · Meditation";
+  if (goal === "both") return "နေ့စဉ် လေ့ကျင့်မှု · Daily practice";
+  if (goal === "exam") return "စာမေးပွဲ";
+  return "—";
+}
+
+function sessionLabel(session: {
+  type: string;
+  worship_plan_name?: string;
+}) {
+  if (session.type === "meditate") return "တရားထိုင် · Meditate";
+  if (session.type === "worship")
+    return session.worship_plan_name || "Worship";
+  return "Practice";
+}
 
 export default function ProfilePage() {
   const {
     profile,
-    earnedBadgeSlugs,
     sessions,
-    quizAttempts,
-    completedLessonIds,
     signOut,
+    updateDisplayName,
   } = useAppStore();
+  const [name, setName] = useState(profile?.display_name ?? "");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    setName(profile?.display_name ?? "");
+  }, [profile?.display_name]);
 
   if (!profile) return null;
 
-  const snapshot = createGamificationSnapshot({
-    profile,
-    completedLessonIds,
-    earnedBadgeSlugs,
-    sessions,
-    quizAttempts,
-  });
-  if (!snapshot) return null;
+  const practiceSessions = sessions
+    .filter((session) => session.type === "meditate" || session.type === "worship")
+    .sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const recent = practiceSessions.slice(0, 12);
+  const meditateCount = practiceSessions.filter((s) => s.type === "meditate").length;
+  const worshipCount = practiceSessions.filter((s) => s.type === "worship").length;
 
-  const activity = [
-    ...sessions.map((session) => ({
-      id: session.id,
-      date: session.created_at,
-      label:
-        session.type === "meditate"
-          ? "တရားထိုင်"
-          : session.type === "worship"
-            ? session.worship_plan_name || "Worship"
-            : "ပုတီး",
-      detail:
-        session.type === "worship"
-          ? "Completed · 1 time"
-          : `+${session.merit_awarded} merit`,
-    })),
-    ...quizAttempts.map((attempt) => ({
-      id: attempt.id,
-      date: attempt.created_at,
-      label: "စာမေး",
-      detail: `${attempt.score}/${attempt.total} · +${attempt.merit_awarded} merit`,
-    })),
-  ]
-    .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 8);
+  async function onSaveName(e: FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    setError("");
+    setMessage("");
+    try {
+      await updateDisplayName(name);
+      setMessage("Saved");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not save name");
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <section className="gamify-page section-page animate-grow-in">
       <PageHeader
         title="ပရိုဖိုင် · Profile"
-        description={`${profile.display_name} · ${snapshot.tree.en}`}
+        description="Account information · Tracker & History"
       />
 
-      <Surface strong className="grid justify-items-center gap-3 p-5 text-center">
-        <p className="text-xl text-cream">{profile.display_name}</p>
-        <p className="text-sm text-text-tertiary">{profile.email}</p>
-        <p className="text-sm text-accent-merit-soft">
-          ရည်မှန်းချက်:{" "}
-          {profile.goal === "meditation"
-            ? "တရားထိုင်ခြင်း"
-            : profile.goal === "exam"
-              ? "စာမေးပွဲ"
-              : "နှစ်မျိုးလုံး"}
-        </p>
-        <BodhiTree
-          stage={snapshot.stage}
-          merit={snapshot.merit}
-          className="scale-90"
-        />
-        <p className="text-sm text-text-secondary">
-          {snapshot.tree.mm} · Level {snapshot.level}
-        </p>
+      <Surface strong className="grid gap-4 p-5">
+        <div>
+          <p className="text-xl text-cream">{profile.display_name}</p>
+          <p className="text-sm text-text-tertiary">{profile.email}</p>
+          <p className="mt-1 text-sm text-accent-merit-soft">
+            ရည်မှန်းချက်: {goalLabel(profile.goal)}
+          </p>
+        </div>
+
+        <form onSubmit={onSaveName} className="grid gap-2">
+          <label className="grid gap-1.5 text-sm">
+            <span className="text-text-secondary">Display name</span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="gamify-input"
+              maxLength={48}
+            />
+          </label>
+          {error ? <p className="text-sm text-accent-danger">{error}</p> : null}
+          {message ? (
+            <p className="text-sm text-accent-merit-soft">{message}</p>
+          ) : null}
+          <button
+            type="submit"
+            disabled={saving || name.trim() === profile.display_name}
+            className="gamify-button gamify-button--secondary w-fit"
+          >
+            {saving ? "…" : "Update name"}
+          </button>
+        </form>
       </Surface>
 
       <div className="gamify-stat-grid">
-        <StatCard label="Merit" value={snapshot.merit} />
-        <StatCard
-          label="သင်ခန်းစာ"
-          value={`${snapshot.completedLessonCount}/${snapshot.lessonTotal}`}
-        />
-        <StatCard label="လေ့ကျင့်မှု" value={snapshot.practiceSessionCount} />
+        <StatCard label="Streak" value={profile.streak_current} />
+        <StatCard label="Meditate" value={meditateCount} />
+        <StatCard label="Worship" value={worshipCount} />
       </div>
 
       <StreakCard
-        current={snapshot.currentStreak}
-        longest={snapshot.longestStreak}
-        week={snapshot.week}
+        current={profile.streak_current}
+        longest={profile.streak_longest}
+        week={Array.from({ length: 7 }, (_, index) => {
+          const today = new Date().getDay();
+          return {
+            key: String(index),
+            label: ["S", "M", "T", "W", "T", "F", "S"][index] ?? "",
+            date: index + 1,
+            active: index < Math.min(7, profile.streak_current),
+            today: index === today,
+          };
+        })}
       />
 
-      <section className="grid gap-3">
-        <SectionHeading>
-          <TrophyIcon /> တံဆိပ်များ · Badges
-        </SectionHeading>
-        <BadgeGrid badges={snapshot.badges} />
-      </section>
-
-      <section className="grid gap-3">
-        <SectionHeading>မကြာသေးမီ လုပ်ဆောင်ချက်</SectionHeading>
-        {activity.length === 0 ? (
-          <EmptyState>မရှိသေးပါ — လေ့ကျင့်မှု စတင်ပါ။</EmptyState>
+      <section id="history" className="grid scroll-mt-24 gap-3">
+        <SectionHeading>မှတ်တမ်း · History</SectionHeading>
+        {recent.length === 0 ? (
+          <EmptyState>
+            မရှိသေးပါ — တရားထိုင်ခြင်း သို့မဟုတ် worship ပြီးဆုံးပါ။
+          </EmptyState>
         ) : (
           <div className="grid gap-2">
-            {activity.map((item) => (
-              <Surface key={item.id} muted className="flex items-center justify-between gap-3 px-3 py-2.5">
-                <span className="text-sm text-cream">{item.label}</span>
+            {recent.map((session) => (
+              <Surface
+                key={session.id}
+                muted
+                className="flex items-center justify-between gap-3 px-3 py-2.5"
+              >
+                <span className="text-sm text-cream">
+                  {sessionLabel(session)}
+                </span>
                 <span className="text-right text-xs text-text-tertiary">
-                  <span className="block">{item.detail}</span>
                   <span className="block">
-                    {new Date(item.date).toLocaleDateString()}
+                    {session.type === "worship"
+                      ? "Completed"
+                      : session.duration_sec
+                        ? `${Math.round(session.duration_sec / 60)} min`
+                        : `+${session.merit_awarded} merit`}
+                  </span>
+                  <span className="block">
+                    {new Date(session.created_at).toLocaleString()}
                   </span>
                 </span>
               </Surface>
@@ -133,17 +166,15 @@ export default function ProfilePage() {
       </section>
 
       <div className="flex flex-wrap gap-2 pt-2">
-        <Link
-          href="/home"
-          className="gamify-button gamify-button--secondary"
-        >
+        <Link href="/home" className="gamify-button gamify-button--secondary">
           အိမ်သို့
         </Link>
         <button
           type="button"
           onClick={() => {
-            signOut();
-            window.location.href = "/";
+            void signOut().then(() => {
+              window.location.href = "/";
+            });
           }}
           className="gamify-button gamify-button--quiet"
         >

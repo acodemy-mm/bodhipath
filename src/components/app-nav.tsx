@@ -37,30 +37,11 @@ function IconHome({ className }: { className?: string }) {
   );
 }
 
-function IconLearn({ className }: { className?: string }) {
-  return (
-    <NavIcon className={className}>
-      <path d="M5 6.5A1.5 1.5 0 0 1 6.5 5H12v13H6.5A1.5 1.5 0 0 1 5 16.5v-10Z" />
-      <path d="M12 5h5.5A1.5 1.5 0 0 1 19 6.5v10a1.5 1.5 0 0 1-1.5 1.5H12" />
-    </NavIcon>
-  );
-}
-
 function IconPractice({ className }: { className?: string }) {
   return (
     <NavIcon className={className}>
       <circle cx="12" cy="12" r="7" />
       <circle cx="12" cy="12" r="2.25" />
-    </NavIcon>
-  );
-}
-
-function IconEvent({ className }: { className?: string }) {
-  return (
-    <NavIcon className={className}>
-      <rect x="4.5" y="6" width="15" height="14" rx="1.5" />
-      <path d="M8 4v3M16 4v3M4.5 10h15" />
-      <path d="M9 14h2M13 14h2M9 17h2" />
     </NavIcon>
   );
 }
@@ -80,9 +61,7 @@ const LINKS: {
   icon: (props: { className?: string }) => ReactNode;
 }[] = [
   { href: "/home", label: "Home", icon: IconHome },
-  { href: "/learn", label: "Learn", icon: IconLearn },
   { href: "/practice", label: "Practice", icon: IconPractice },
-  { href: "/event", label: "Event", icon: IconEvent },
   { href: "/profile", label: "Profile", icon: IconProfile },
 ];
 
